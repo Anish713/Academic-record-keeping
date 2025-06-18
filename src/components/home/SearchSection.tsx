@@ -8,7 +8,7 @@ export default function SearchSection() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real implementation, this would redirect to the record page or show results
+    // In a real implementation, this would redirect to the record page or show results // TODO 6: Replace with actual search logic
     console.log('Searching for record:', recordId);
     // window.location.href = `/records/${recordId}`;
   };

@@ -29,9 +29,10 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center space-x-4">
-          <Button variant="navy" as={Link} href="/login">
-            Login →
+          <Button asChild variant="navy">
+            <Link href="/login">Login →</Link>
           </Button>
+
         </div>
       </div>
     </header>

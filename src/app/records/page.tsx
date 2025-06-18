@@ -31,7 +31,7 @@ function RecordItem({ studentName, type, dateOfBirth, lastUpdated }: RecordItemP
 }
 
 export default function RecordsPage() {
-  // Sample data - in a real app, this would come from the blockchain
+  // Sample data - in a real app, this would come from the blockchain // TODO 4: Replace with actual data fetching logic
   const records = [
     { studentName: 'Alex', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
     { studentName: 'Alex Thapa', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },

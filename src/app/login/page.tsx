@@ -13,7 +13,7 @@ export default function LoginPage() {
     setError('');
     
     try {
-      // In a real implementation, this would use Web3Modal or similar to connect to MetaMask
+      // In a real implementation, this would use Web3Modal or similar to connect to MetaMask // TODO 3: Replace with actual wallet connection logic
       if (typeof window.ethereum !== 'undefined') {
         try {
           // Request account access

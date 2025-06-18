@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
 
 export default function DashboardPage() {
-  // In a real app, this would come from a wallet connection or authentication
+  // In a real app, this would come from a wallet connection or authentication // TODO 1: Replace with actual wallet connection logic
   const [connectedAddress, setConnectedAddress] = useState('0x1234567890abcdef1234567890abcdef12345678');
   const [universityName, setUniversityName] = useState('Example University');
   
-  // Sample data - in a real app, this would come from the blockchain
+  // Sample data - in a real app, this would come from the blockchain or a database // TODO 2: Replace with actual data from the blockchain or database
   const [records, setRecords] = useState([
     { id: '1001', studentName: 'Alex', type: 'Transcript', dateIssued: 'March 15, 2023' },
     { id: '1002', studentName: 'Alex Thapa', type: 'Certificate', dateIssued: 'March 15, 2023' },

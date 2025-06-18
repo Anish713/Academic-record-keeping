@@ -12,7 +12,7 @@ export default function VerifyPage() {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real implementation, this would call the blockchain to verify the record
+    // In a real implementation, this would call the blockchain to verify the record // TODO 5: Replace with actual verification logic
     setVerificationStatus('loading');
     
     // Simulate API call
