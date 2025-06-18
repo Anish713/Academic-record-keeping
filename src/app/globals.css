@@ -2,7 +2,10 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #011044;
+  --primary: #011044;
+  --secondary: #008080;
+  --neutral: #36454f;
 }
 
 @theme inline {
@@ -22,5 +25,4 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
