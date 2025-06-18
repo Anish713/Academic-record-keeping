@@ -1,0 +1,138 @@
+'use client';
+
+import { useState } from 'react';
+import MainLayout from '@/components/layout/MainLayout';
+import { Button } from '@/components/ui/Button';
+import { truncateAddress } from '@/lib/utils';
+
+export default function DashboardPage() {
+  // In a real app, this would come from a wallet connection or authentication
+  const [connectedAddress, setConnectedAddress] = useState('0x1234567890abcdef1234567890abcdef12345678');
+  const [universityName, setUniversityName] = useState('Example University');
+  
+  // Sample data - in a real app, this would come from the blockchain
+  const [records, setRecords] = useState([
+    { id: '1001', studentName: 'Alex', type: 'Transcript', dateIssued: 'March 15, 2023' },
+    { id: '1002', studentName: 'Alex Thapa', type: 'Certificate', dateIssued: 'March 15, 2023' },
+    { id: '1003', studentName: 'Bob Shrestha', type: 'Certificate', dateIssued: 'March 15, 2023' },
+    { id: '1004', studentName: 'Alice Khanal', type: 'Certificate', dateIssued: 'March 15, 2023' },
+    { id: '1005', studentName: 'John Doe', type: 'Transcript', dateIssued: 'March 15, 2023' },
+  ]);
+
+  return (
+    <MainLayout>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg mb-8">
+          <div className="px-6 py-5 border-b border-gray-200">
+            <div className="flex items-center justify-between flex-wrap sm:flex-nowrap">
+              <div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  University Dashboard
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {universityName} ({truncateAddress(connectedAddress)})
+                </p>
+              </div>
+              <div>
+                <Button variant="navy">
+                  Add New Record
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="px-6 py-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Records
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {records.length}
+                </dd>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Transcripts
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {records.filter(r => r.type === 'Transcript').length}
+                </dd>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Certificates
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {records.filter(r => r.type === 'Certificate').length}
+                </dd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow overflow-hidden rounded-lg">
+          <div className="px-6 py-5 border-b border-gray-200">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Recent Records
+            </h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Name
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date Issued
+                  </th>
+                  <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {records.map((record) => (
+                  <tr key={record.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {record.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {record.studentName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${record.type === 'Transcript' ? 'bg-teal-100 text-teal-800' : 'bg-teal-100 text-teal-800'}`}>
+                        {record.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {record.dateIssued}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/records/${record.id}`} className="text-blue-600 hover:text-blue-900 mr-4">View</a>
+                      <button className="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
