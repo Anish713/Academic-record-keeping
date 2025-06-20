@@ -10,6 +10,12 @@ interface Record {
   timestamp: number;
   university: string;
   isValid: boolean;
+  universityName?: string;
+}
+
+interface University {
+  address: string;
+  name: string;
 }
 
 class BlockchainService {
@@ -24,6 +30,9 @@ class BlockchainService {
   private UNIVERSITY_ROLE = ethers.keccak256(
     ethers.toUtf8Bytes("UNIVERSITY_ROLE")
   );
+
+  // University name mapping (in a real app, this would come from a database)
+  private universityNames: Map<string, string> = new Map();
 
   constructor() {
     // Initialize on class instantiation
@@ -114,10 +123,11 @@ class BlockchainService {
       studentName: record.studentName,
       studentId: record.studentId,
       recordType: Number(record.recordType),
-      dataHash: record.dataHash,
+      dataHash: record.ipfsHash,
       timestamp: Number(record.timestamp),
-      university: record.university,
-      isValid: record.isValid,
+      university: record.issuer,
+      isValid: record.isVerified,
+      universityName: record.universityName
     };
   }
 
@@ -173,6 +183,60 @@ class BlockchainService {
 
     const tx = await this.contract.invalidateRecord(recordId);
     await tx.wait();
+  }
+
+  // Admin functions
+  async addUniversity(universityAddress: string): Promise<void> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    const tx = await this.contract.addUniversity(universityAddress);
+    await tx.wait();
+  }
+
+  async removeUniversity(universityAddress: string): Promise<void> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    const tx = await this.contract.removeUniversity(universityAddress);
+    await tx.wait();
+  }
+
+  async pauseContract(): Promise<void> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    const tx = await this.contract.pause();
+    await tx.wait();
+  }
+
+  async unpauseContract(): Promise<void> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    const tx = await this.contract.unpause();
+    await tx.wait();
+  }
+
+  async isContractPaused(): Promise<boolean> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    return await this.contract.paused();
+  }
+
+  // University name management (in a real app, this would use a database)
+  setUniversityName(address: string, name: string): void {
+    this.universityNames.set(address.toLowerCase(), name);
+  }
+
+  getUniversityName(address: string): string {
+    return this.universityNames.get(address.toLowerCase()) || "Unknown University";
   }
 
   isConnected(): boolean {

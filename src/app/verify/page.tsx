@@ -35,6 +35,36 @@ export default function VerifyPage() {
     init();
   }, [searchParams]);
   
+  // Fetch university names from blockchain
+  const [universityNames, setUniversityNames] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const fetchUniversityNames = async () => {
+      try {
+        // Get all records to extract unique university names
+        // This is a simplified approach - in a production app, you might want to
+        // implement a dedicated endpoint to fetch all university names
+        const address = await blockchainService.getAddress();
+        
+        // Try to get some records to extract university names
+        // This is just one approach - you could also store university names in local storage
+        // when they're added by the admin
+        if (recordDetails && recordDetails.universityName) {
+          // If we already have a record, use its university name
+          setUniversityNames([recordDetails.universityName]);
+        } else {
+          // Default fallback
+          setUniversityNames(['University name will appear after verification']);
+        }
+      } catch (error) {
+        console.error('Error fetching university names:', error);
+        setUniversityNames(['University name will appear after verification']);
+      }
+    };
+    
+    fetchUniversityNames();
+  }, [recordDetails]);
+  
   const verifyRecord = async (id: string) => {
     if (!id || !initialized) return;
     
@@ -58,7 +88,7 @@ export default function VerifyPage() {
         setRecordDetails({
           id: id,
           studentName: record.studentName,
-          universityName: 'Issuing Institution', // This would come from a mapping of addresses to names in a real app // TODO 2: fetch university name from blockchain or database
+          universityName: record.universityName || await blockchainService.getUniversityName(record.university),
           recordType: record.recordType === 0 ? 'Transcript' : 
                      record.recordType === 1 ? 'Certificate' : 
                      record.recordType === 2 ? 'Degree' : 'Other',

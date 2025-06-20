@@ -23,11 +23,14 @@ export default function LoginPage() {
       // Get connected address
       const address = await blockchainService.getAddress();
       
-      // Check if the user has university role
+      // Check user roles
+      const isAdmin = await blockchainService.hasRole('ADMIN_ROLE', address);
       const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
       
       // Redirect based on role
-      if (isUniversity) {
+      if (isAdmin) {
+        window.location.href = '/admin';
+      } else if (isUniversity) {
         window.location.href = '/dashboard';
       } else {
         window.location.href = '/records';

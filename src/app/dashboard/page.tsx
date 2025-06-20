@@ -9,6 +9,41 @@ import { blockchainService } from '@/services/blockchain';
 export default function DashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState('');
   const [universityName, setUniversityName] = useState('Example University');
+  const [universityNames, setUniversityNames] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const fetchUniversityNames = async () => {
+      try {
+        // Get the connected address
+        const address = await blockchainService.getAddress();
+        
+        // Get university record IDs
+        const recordIds = await blockchainService.getUniversityRecords();
+        
+        // If there are record IDs, fetch the first record to get university name
+        if (recordIds.length > 0) {
+          const firstRecord = await blockchainService.getRecord(recordIds[0]);
+          if (firstRecord && firstRecord.universityName) {
+            setUniversityNames([firstRecord.universityName]);
+            return;
+          }
+        }
+        
+        // Fallback: Try to get university name from local storage mapping
+        const universityName = await blockchainService.getUniversityName(address);
+        if (universityName) {
+          setUniversityNames([universityName]);
+        } else {
+          setUniversityNames(['Your University']);
+        }
+      } catch (error) {
+        console.error('Error fetching university names:', error);
+        setUniversityNames(['Your University']);
+      }
+    };
+    
+    fetchUniversityNames();
+  }, []);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
