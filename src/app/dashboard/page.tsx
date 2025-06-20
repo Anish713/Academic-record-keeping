@@ -34,8 +34,7 @@ export default function DashboardPage() {
           return;
         }
         
-        // For demo purposes, set a placeholder university name
-        // In a real app, this would come from a database or user profile
+        // In a real app, this would come from a database or user profile // TODO 1: fetch university name from blockchain or database
         setUniversityName('Example University');
       } catch (err) {
         console.error('Error initializing wallet:', err);

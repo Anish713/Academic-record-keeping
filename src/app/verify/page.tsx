@@ -58,7 +58,7 @@ export default function VerifyPage() {
         setRecordDetails({
           id: id,
           studentName: record.studentName,
-          universityName: 'Issuing Institution', // This would come from a mapping of addresses to names in a real app
+          universityName: 'Issuing Institution', // This would come from a mapping of addresses to names in a real app // TODO 2: fetch university name from blockchain or database
           recordType: record.recordType === 0 ? 'Transcript' : 
                      record.recordType === 1 ? 'Certificate' : 
                      record.recordType === 2 ? 'Degree' : 'Other',
