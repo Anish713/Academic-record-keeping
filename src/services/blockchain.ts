@@ -1,184 +1,183 @@
-import { ethers } from 'ethers';
-import AcademicRecordsABI from '@/contracts/AcademicRecords.json';
+import { ethers } from "ethers";
+import AcademicRecordsABI from "@/contracts/AcademicRecords.json";
 
-// Types
-export enum RecordType {
-  TRANSCRIPT = 0,
-  CERTIFICATE = 1,
-  DEGREE = 2,
-  OTHER = 3,
-}
-
-export interface Record {
+interface Record {
   id: number;
-  studentId: string;
   studentName: string;
-  universityName: string;
-  ipfsHash: string;
-  metadataHash: string;
-  recordType: RecordType;
+  studentId: string;
+  recordType: number;
+  dataHash: string;
   timestamp: number;
-  isVerified: boolean;
-  issuer: string;
+  university: string;
+  isValid: boolean;
 }
 
 class BlockchainService {
   private provider: ethers.BrowserProvider | null = null;
-  private contract: ethers.Contract | null = null;
   private signer: ethers.Signer | null = null;
-  
-  // Contract address from environment variable
-  private contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '';
+  private contract: ethers.Contract | null = null;
+  private contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
+  private connected = false;
 
-  /**
-   * Initialize the blockchain service
-   */
-  async init() {
-    if (typeof window === 'undefined' || !window.ethereum) {
-      throw new Error('MetaMask is not installed');
-    }
+  // Role constants
+  private ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("ADMIN_ROLE"));
+  private UNIVERSITY_ROLE = ethers.keccak256(
+    ethers.toUtf8Bytes("UNIVERSITY_ROLE")
+  );
 
+  constructor() {
+    // Initialize on class instantiation
+  }
+
+  async init(): Promise<boolean> {
     try {
+      // Check if MetaMask is installed
+      if (typeof window === "undefined" || !window.ethereum) {
+        console.error("MetaMask is not installed");
+        return false;
+      }
+
+      // Initialize provider
       this.provider = new ethers.BrowserProvider(window.ethereum);
+
+      // Request account access
+      await this.provider.send("eth_requestAccounts", []);
+
+      // Get signer
       this.signer = await this.provider.getSigner();
+
+      // Initialize contract
+      if (!this.contractAddress) {
+        console.error("Contract address not provided");
+        return false;
+      }
+
       this.contract = new ethers.Contract(
         this.contractAddress,
         AcademicRecordsABI.abi,
         this.signer
       );
+
+      this.connected = true;
       return true;
     } catch (error) {
-      console.error('Failed to initialize blockchain service:', error);
+      console.error("Error initializing blockchain service:", error);
       return false;
     }
   }
 
-  /**
-   * Get the connected wallet address
-   */
   async getAddress(): Promise<string> {
     if (!this.signer) {
-      throw new Error('Wallet not connected');
+      throw new Error("Blockchain service not initialized");
     }
+
     return await this.signer.getAddress();
   }
 
-  /**
-   * Check if the user has a specific role
-   */
   async hasRole(role: string, address: string): Promise<boolean> {
     if (!this.contract) {
-      throw new Error('Contract not initialized');
-    }
-    return await this.contract.hasRole(ethers.keccak256(ethers.toUtf8Bytes(role)), address);
-  }
-
-  /**
-   * Add a new academic record
-   */
-  async addRecord(
-    studentId: string,
-    studentName: string,
-    universityName: string,
-    ipfsHash: string,
-    metadataHash: string,
-    recordType: RecordType
-  ): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Contract not initialized');
+      throw new Error("Contract not initialized");
     }
 
-    const tx = await this.contract.addRecord(
-      studentId,
-      studentName,
-      universityName,
-      ipfsHash,
-      metadataHash,
-      recordType
-    );
-
-    const receipt = await tx.wait();
-    const event = receipt.events.find((e: any) => e.event === 'RecordAdded');
-    return event.args.recordId.toNumber();
+    const roleHash =
+      role === "ADMIN_ROLE" ? this.ADMIN_ROLE : this.UNIVERSITY_ROLE;
+    return await this.contract.hasRole(roleHash, address);
   }
 
-  /**
-   * Get a record by ID
-   */
-  async getRecord(recordId: number): Promise<Record> {
-    if (!this.contract) {
-      throw new Error('Contract not initialized');
+  async getUniversityRecords(): Promise<number[]> {
+    if (!this.contract || !this.signer) {
+      throw new Error("Contract not initialized");
     }
 
-    const record = await this.contract.getRecord(recordId);
-    return this.formatRecord(record);
+    const address = await this.signer.getAddress();
+    const recordIds = await this.contract.getUniversityRecords(address);
+    return recordIds.map((id: bigint) => Number(id));
   }
 
-  /**
-   * Get all records for a student
-   */
   async getStudentRecords(studentId: string): Promise<number[]> {
     if (!this.contract) {
-      throw new Error('Contract not initialized');
+      throw new Error("Contract not initialized");
     }
 
     const recordIds = await this.contract.getStudentRecords(studentId);
-    return recordIds.map((id: ethers.BigNumberish) => Number(id));
+    return recordIds.map((id: bigint) => Number(id));
   }
 
-  /**
-   * Get all records issued by the connected university
-   */
-  async getUniversityRecords(): Promise<number[]> {
+  async getRecord(recordId: number): Promise<Record> {
     if (!this.contract) {
-      throw new Error('Contract not initialized');
+      throw new Error("Contract not initialized");
     }
 
-    const recordIds = await this.contract.getUniversityRecords();
-    return recordIds.map((id: ethers.BigNumberish) => Number(id));
+    const record = await this.contract.getRecord(recordId);
+    return {
+      id: recordId,
+      studentName: record.studentName,
+      studentId: record.studentId,
+      recordType: Number(record.recordType),
+      dataHash: record.dataHash,
+      timestamp: Number(record.timestamp),
+      university: record.university,
+      isValid: record.isValid,
+    };
   }
 
-  /**
-   * Verify a record
-   */
+  async addRecord(
+    studentName: string,
+    studentId: string,
+    recordType: number,
+    dataHash: string
+  ): Promise<number> {
+    if (!this.contract) {
+      throw new Error("Contract not initialized");
+    }
+
+    const tx = await this.contract.addRecord(
+      studentName,
+      studentId,
+      recordType,
+      dataHash
+    );
+    const receipt = await tx.wait();
+
+    // Get the record ID from the event
+    const event = receipt.logs?.find((log: any) => {
+      try {
+        const parsedLog = this.contract?.interface.parseLog(log);
+        return parsedLog?.name === "RecordAdded";
+      } catch {
+        return false;
+      }
+    });
+
+    if (!event) {
+      throw new Error("Record added but event not found");
+    }
+
+    const parsedEvent = this.contract?.interface.parseLog(event);
+    return Number(parsedEvent?.args.recordId);
+  }
+
   async verifyRecord(recordId: number): Promise<boolean> {
     if (!this.contract) {
-      throw new Error('Contract not initialized');
+      throw new Error("Contract not initialized");
     }
 
-    return await this.contract.verifyRecord(recordId);
+    const record = await this.getRecord(recordId);
+    return record.isValid;
   }
 
-  /**
-   * Record an access to a document
-   */
-  async recordAccess(recordId: number): Promise<void> {
+  async deleteRecord(recordId: number): Promise<void> {
     if (!this.contract) {
-      throw new Error('Contract not initialized');
+      throw new Error("Contract not initialized");
     }
 
-    const tx = await this.contract.recordAccess(recordId);
+    const tx = await this.contract.invalidateRecord(recordId);
     await tx.wait();
   }
 
-  /**
-   * Format a record from the blockchain
-   */
-  private formatRecord(record: any): Record {
-    return {
-      id: Number(record.id),
-      studentId: record.studentId,
-      studentName: record.studentName,
-      universityName: record.universityName,
-      ipfsHash: record.ipfsHash,
-      metadataHash: record.metadataHash,
-      recordType: Number(record.recordType),
-      timestamp: Number(record.timestamp),
-      isVerified: record.isVerified,
-      issuer: record.issuer,
-    };
+  isConnected(): boolean {
+    return this.connected;
   }
 }
 
-// Export as singleton
 export const blockchainService = new BlockchainService();

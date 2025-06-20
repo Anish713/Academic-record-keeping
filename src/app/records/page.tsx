@@ -1,50 +1,114 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
+import { blockchainService } from '@/services/blockchain';
 
 interface RecordItemProps {
+  id: string;
   studentName: string;
-  type: 'Transcript' | 'Certificate';
-  dateOfBirth: string;
-  lastUpdated: string;
+  type: string;
+  dateIssued: string;
 }
 
-function RecordItem({ studentName, type, dateOfBirth, lastUpdated }: RecordItemProps) {
+function RecordItem({ id, studentName, type, dateIssued }: RecordItemProps) {
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50">
       <td className="py-4 px-6 text-sm text-gray-900">{studentName}</td>
       <td className="py-4 px-6 text-sm">
-        <span className={`px-2 py-1 rounded-md text-xs font-medium ${type === 'Transcript' ? 'bg-teal-100 text-teal-800' : 'bg-teal-100 text-teal-800'}`}>
+        <span className={`px-2 py-1 rounded-md text-xs font-medium ${type === 'Transcript' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-800'}`}>
           {type}
         </span>
       </td>
-      <td className="py-4 px-6 text-sm text-gray-500">{dateOfBirth}</td>
-      <td className="py-4 px-6 text-sm text-gray-500">{lastUpdated}</td>
+      <td className="py-4 px-6 text-sm text-gray-500">{dateIssued}</td>
       <td className="py-4 px-6 text-sm text-right">
-        <button className="text-blue-600 hover:text-blue-900">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        <a href={`/verify?id=${id}`} className="text-blue-600 hover:text-blue-900 mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
-        </button>
+        </a>
       </td>
     </tr>
   );
 }
 
 export default function RecordsPage() {
-  // Sample data - in a real app, this would come from the blockchain // TODO 4: Replace with actual data fetching logic
-  const records = [
-    { studentName: 'Alex', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Alex Thapa', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Bob Shrestha', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Alice Khanal', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'John Doe', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Joe Devkota', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Laxmi Prasad', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'John Vohn Neuman', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Kriti', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Patrik Pokhrel', type: 'Transcript' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-    { studentName: 'Manish Manush', type: 'Certificate' as const, dateOfBirth: 'March 15, 2016', lastUpdated: 'March 15, 2016' },
-  ];
+  const [records, setRecords] = useState<RecordItemProps[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [connectedAddress, setConnectedAddress] = useState('');
+  
+  useEffect(() => {
+    const initWallet = async () => {
+      try {
+        // Initialize blockchain service
+        const success = await blockchainService.init();
+        if (!success) {
+          window.location.href = '/login';
+          return;
+        }
+        
+        // Get connected address
+        const address = await blockchainService.getAddress();
+        setConnectedAddress(address);
+        
+        // Check if the user has university role
+        const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
+        if (isUniversity) {
+          window.location.href = '/dashboard';
+          return;
+        }
+      } catch (err) {
+        console.error('Error initializing wallet:', err);
+        window.location.href = '/login';
+      }
+    };
+    
+    initWallet();
+  }, []);
+  
+  useEffect(() => {
+    const fetchRecords = async () => {
+      if (!connectedAddress) return;
+      
+      setLoading(true);
+      setError('');
+      
+      try {
+        // Get student ID (using address as student ID for simplicity)
+        const studentId = connectedAddress;
+        
+        // Get record IDs for the student
+        const recordIds = await blockchainService.getStudentRecords(studentId);
+        
+        // Fetch details for each record
+        const recordsData = await Promise.all(
+          recordIds.map(async (id: number) => {
+            const record = await blockchainService.getRecord(id);
+            return {
+              id: id.toString(),
+              studentName: record.studentName,
+              type: record.recordType === 0 ? 'Transcript' : 
+                    record.recordType === 1 ? 'Certificate' : 
+                    record.recordType === 2 ? 'Degree' : 'Other',
+              dateIssued: new Date(record.timestamp * 1000).toLocaleDateString()
+            };
+          })
+        );
+        
+        setRecords(recordsData);
+      } catch (err) {
+        console.error('Error fetching records:', err);
+        setError('Failed to fetch records. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRecords();
+  }, [connectedAddress]);
 
   return (
     <MainLayout>
@@ -68,10 +132,7 @@ export default function RecordsPage() {
                     Type
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date of birth
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last updated
+                    Date Issued
                   </th>
                   <th scope="col" className="relative px-6 py-3">
                     <span className="sr-only">Edit</span>
@@ -79,9 +140,29 @@ export default function RecordsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {records.map((record, index) => (
-                  <RecordItem key={index} {...record} />
-                ))}
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="py-4 px-6 text-center text-gray-500">
+                      Loading records...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={4} className="py-4 px-6 text-center text-red-500">
+                      {error}
+                    </td>
+                  </tr>
+                ) : records.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-4 px-6 text-center text-gray-500">
+                      No records found.
+                    </td>
+                  </tr>
+                ) : (
+                  records.map((record, index) => (
+                    <RecordItem key={index} {...record} />
+                  ))
+                )}
               </tbody>
             </table>
           </div>

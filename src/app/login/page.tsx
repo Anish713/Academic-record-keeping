@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
+import { blockchainService } from '@/services/blockchain';
 
 export default function LoginPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -13,24 +14,33 @@ export default function LoginPage() {
     setError('');
     
     try {
-      // In a real implementation, this would use Web3Modal or similar to connect to MetaMask // TODO 3: Replace with actual wallet connection logic
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          // Request account access
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          
-          // Redirect to dashboard or records page after successful connection
-          window.location.href = '/records';
-        } catch (error) {
-          console.error('User denied account access');
-          setError('You denied wallet connection. Please try again.');
-        }
-      } else {
-        setError('MetaMask is not installed. Please install MetaMask to continue.');
+      // Initialize blockchain service
+      const success = await blockchainService.init();
+      if (!success) {
+        throw new Error('Failed to initialize blockchain service');
       }
-    } catch (err) {
+      
+      // Get connected address
+      const address = await blockchainService.getAddress();
+      
+      // Check if the user has university role
+      const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
+      
+      // Redirect based on role
+      if (isUniversity) {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/records';
+      }
+    } catch (err: any) {
       console.error('Error connecting wallet:', err);
-      setError('Failed to connect wallet. Please try again.');
+      if (err.message?.includes('MetaMask is not installed')) {
+        setError('MetaMask is not installed. Please install MetaMask to continue.');
+      } else if (err.message?.includes('User rejected')) {
+        setError('You denied wallet connection. Please try again.');
+      } else {
+        setError('Failed to connect wallet. Please try again.');
+      }
     } finally {
       setIsConnecting(false);
     }

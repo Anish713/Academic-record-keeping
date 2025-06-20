@@ -1,23 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
+import { blockchainService } from '@/services/blockchain';
 
 export default function DashboardPage() {
-  // In a real app, this would come from a wallet connection or authentication // TODO 1: Replace with actual wallet connection logic
-  const [connectedAddress, setConnectedAddress] = useState('0x1234567890abcdef1234567890abcdef12345678');
+  const [connectedAddress, setConnectedAddress] = useState('');
   const [universityName, setUniversityName] = useState('Example University');
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
-  // Sample data - in a real app, this would come from the blockchain or a database // TODO 2: Replace with actual data from the blockchain or database
-  const [records, setRecords] = useState([
-    { id: '1001', studentName: 'Alex', type: 'Transcript', dateIssued: 'March 15, 2023' },
-    { id: '1002', studentName: 'Alex Thapa', type: 'Certificate', dateIssued: 'March 15, 2023' },
-    { id: '1003', studentName: 'Bob Shrestha', type: 'Certificate', dateIssued: 'March 15, 2023' },
-    { id: '1004', studentName: 'Alice Khanal', type: 'Certificate', dateIssued: 'March 15, 2023' },
-    { id: '1005', studentName: 'John Doe', type: 'Transcript', dateIssued: 'March 15, 2023' },
-  ]);
+  useEffect(() => {
+    const initWallet = async () => {
+      try {
+        // Initialize blockchain service
+        const success = await blockchainService.init();
+        if (!success) {
+          window.location.href = '/login';
+          return;
+        }
+        
+        // Get connected address
+        const address = await blockchainService.getAddress();
+        setConnectedAddress(address);
+        
+        // Check if the user has university role
+        const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
+        if (!isUniversity) {
+          window.location.href = '/records';
+          return;
+        }
+        
+        // For demo purposes, set a placeholder university name
+        // In a real app, this would come from a database or user profile
+        setUniversityName('Example University');
+      } catch (err) {
+        console.error('Error initializing wallet:', err);
+        window.location.href = '/login';
+      }
+    };
+    
+    initWallet();
+  }, []);
+  
+  useEffect(() => {
+    const fetchRecords = async () => {
+      if (!connectedAddress) return;
+      
+      setLoading(true);
+      setError('');
+      
+      try {
+        // Get record IDs issued by the university
+        const recordIds = await blockchainService.getUniversityRecords();
+        
+        // Fetch details for each record
+        const recordsData = await Promise.all(
+          recordIds.map(async (id: number) => {
+            const record = await blockchainService.getRecord(id);
+            return {
+              id: id.toString(),
+              studentName: record.studentName,
+              type: record.recordType === 0 ? 'Transcript' : 
+                    record.recordType === 1 ? 'Certificate' : 
+                    record.recordType === 2 ? 'Degree' : 'Other',
+              dateIssued: new Date(record.timestamp * 1000).toLocaleDateString()
+            };
+          })
+        );
+        
+        setRecords(recordsData);
+      } catch (err) {
+        console.error('Error fetching records:', err);
+        setError('Failed to fetch records. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRecords();
+  }, [connectedAddress]);
 
   return (
     <MainLayout>

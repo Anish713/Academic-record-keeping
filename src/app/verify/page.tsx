@@ -1,38 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
+import { blockchainService } from '@/services/blockchain';
+import { truncateAddress } from '@/lib/utils';
 
 export default function VerifyPage() {
+  const searchParams = useSearchParams();
   const [recordId, setRecordId] = useState('');
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [recordDetails, setRecordDetails] = useState<any>(null);
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [initialized, setInitialized] = useState(false);
+  
+  // Initialize blockchain service
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await blockchainService.init();
+        setInitialized(true);
+        
+        // Check if there's a record ID in the URL
+        const idFromUrl = searchParams.get('id');
+        if (idFromUrl) {
+          setRecordId(idFromUrl);
+          verifyRecord(idFromUrl);
+        }
+      } catch (err) {
+        console.error('Error initializing blockchain service:', err);
+      }
+    };
     
-    // In a real implementation, this would call the blockchain to verify the record // TODO 5: Replace with actual verification logic
+    init();
+  }, [searchParams]);
+  
+  const verifyRecord = async (id: string) => {
+    if (!id || !initialized) return;
+    
     setVerificationStatus('loading');
     
-    // Simulate API call
-    setTimeout(() => {
-      if (recordId === '8898789') {
+    try {
+      // Convert ID to number
+      const recordIdNumber = parseInt(id, 10);
+      if (isNaN(recordIdNumber)) {
+        throw new Error('Invalid record ID');
+      }
+      
+      // Get record from blockchain
+      const record = await blockchainService.getRecord(recordIdNumber);
+      
+      // Verify record is valid
+      const isValid = record.isValid;
+      
+      if (isValid) {
         setVerificationStatus('success');
         setRecordDetails({
-          id: recordId,
-          studentName: 'John Doe',
-          universityName: 'Example University',
-          recordType: 'Transcript',
-          issueDate: 'March 15, 2023',
+          id: id,
+          studentName: record.studentName,
+          universityName: 'Issuing Institution', // This would come from a mapping of addresses to names in a real app
+          recordType: record.recordType === 0 ? 'Transcript' : 
+                     record.recordType === 1 ? 'Certificate' : 
+                     record.recordType === 2 ? 'Degree' : 'Other',
+          issueDate: new Date(record.timestamp * 1000).toLocaleDateString(),
           verified: true,
-          issuer: '0x1234...5678',
+          issuer: truncateAddress(record.university),
         });
       } else {
         setVerificationStatus('error');
         setRecordDetails(null);
       }
-    }, 1500);
+    } catch (err) {
+      console.error('Error verifying record:', err);
+      setVerificationStatus('error');
+      setRecordDetails(null);
+    }
+  };
+  
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await verifyRecord(recordId);
   };
 
   return (

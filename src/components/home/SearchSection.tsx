@@ -1,16 +1,23 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 
 export default function SearchSection() {
   const [recordId, setRecordId] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real implementation, this would redirect to the record page or show results // TODO 6: Replace with actual search logic
-    console.log('Searching for record:', recordId);
-    // window.location.href = `/records/${recordId}`;
+    
+    if (!recordId.trim()) return;
+    
+    setIsSearching(true);
+    
+    // Redirect to verify page with the record ID
+    router.push(`/verify?id=${recordId}`);
   };
 
   return (
