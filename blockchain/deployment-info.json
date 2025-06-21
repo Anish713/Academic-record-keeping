@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "timestamp": "2025-06-21T15:12:06.458Z",
+  "deployer": "0xb559afc2AC76c71b5400265afF84557e339f73C1",
+  "contracts": {
+    "RecordStorage": "0x8b12aDC5d7b877579F59e575ac7E173dc8A84B87",
+    "AcademicRecords": "0xC546C75A87F2F15BC8ede731C65B26f6F49847b9",
+    "StudentManagement": "0xd35EDFc5F2aF4a5Bc68eeD33C5c9a9448e1a5385"
+  }
+}
