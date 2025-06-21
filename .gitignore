@@ -55,3 +55,7 @@ next-env.d.ts
 
 # local development files
 /contracts/
+
+*storybook.log
+storybook-static
+package-lock.json
