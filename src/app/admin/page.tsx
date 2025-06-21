@@ -46,6 +46,10 @@ export default function AdminPage() {
         const paused = await blockchainService.isContractPaused();
         setIsPaused(paused);
         
+        // Load universities from blockchain service
+        const storedUniversities = blockchainService.getUniversities();
+        setUniversities(storedUniversities);
+        
         setLoading(false);
       } catch (err) {
         console.error('Error initializing wallet:', err);

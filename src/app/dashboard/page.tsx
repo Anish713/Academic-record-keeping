@@ -69,8 +69,7 @@ export default function DashboardPage() {
           return;
         }
         
-        // In a real app, this would come from a database or user profile // TODO 1: fetch university name from blockchain or database
-        setUniversityName('Example University');
+        setUniversityName('Example University'); // TODO : fetch university name from blockchain
       } catch (err) {
         console.error('Error initializing wallet:', err);
         window.location.href = '/login';
@@ -133,7 +132,10 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div>
-                <Button variant="navy">
+                <Button 
+                  variant="navy" 
+                  onClick={() => window.location.href = '/records/add'}
+                >
                   Add New Record
                 </Button>
               </div>

@@ -34,6 +34,9 @@ class BlockchainService {
   // University name mapping (in a real app, this would come from a database)
   private universityNames: Map<string, string> = new Map();
 
+  // Store universities for persistence
+  private universities: University[] = [];
+
   constructor() {
     // Initialize on class instantiation
   }
@@ -67,6 +70,9 @@ class BlockchainService {
         this.signer
       );
 
+      // Load universities from localStorage
+      this.loadUniversities();
+
       this.connected = true;
       return true;
     } catch (error) {
@@ -98,8 +104,9 @@ class BlockchainService {
       throw new Error("Contract not initialized");
     }
 
-    const address = await this.signer.getAddress();
-    const recordIds = await this.contract.getUniversityRecords(address);
+    // The contract's getUniversityRecords method doesn't take any parameters
+    // It uses msg.sender internally to determine the university address
+    const recordIds = await this.contract.getUniversityRecords();
     return recordIds.map((id: bigint) => Number(id));
   }
 
@@ -127,7 +134,7 @@ class BlockchainService {
       timestamp: Number(record.timestamp),
       university: record.issuer,
       isValid: record.isVerified,
-      universityName: record.universityName
+      universityName: record.universityName,
     };
   }
 
@@ -141,11 +148,19 @@ class BlockchainService {
       throw new Error("Contract not initialized");
     }
 
+    // Get the university name for the current address
+    const address = await this.getAddress();
+    const universityName = this.getUniversityName(address);
+
+    // Call the contract with the correct parameter order and include all required parameters
+    // Contract expects: studentId, studentName, universityName, ipfsHash, metadataHash, recordType
     const tx = await this.contract.addRecord(
-      studentName,
       studentId,
-      recordType,
-      dataHash
+      studentName,
+      universityName,
+      dataHash,
+      "", // metadataHash - empty string as it's not provided in our UI // TODO: Make this dynamic based on user input
+      recordType // TODO: Make this dynamic based on user input
     );
     const receipt = await tx.wait();
 
@@ -200,6 +215,9 @@ class BlockchainService {
       throw new Error("Contract not initialized");
     }
 
+    // Remove from storage
+    this.removeUniversityFromStorage(universityAddress);
+
     const tx = await this.contract.removeUniversity(universityAddress);
     await tx.wait();
   }
@@ -233,10 +251,64 @@ class BlockchainService {
   // University name management (in a real app, this would use a database)
   setUniversityName(address: string, name: string): void {
     this.universityNames.set(address.toLowerCase(), name);
+
+    // Update universities array for persistence
+    const existingIndex = this.universities.findIndex(
+      (u) => u.address.toLowerCase() === address.toLowerCase()
+    );
+    if (existingIndex >= 0) {
+      this.universities[existingIndex].name = name;
+    } else {
+      this.universities.push({ address, name });
+    }
+
+    // Save to localStorage for persistence
+    if (typeof window !== "undefined") {
+      localStorage.setItem("universities", JSON.stringify(this.universities));
+    }
   }
 
   getUniversityName(address: string): string {
-    return this.universityNames.get(address.toLowerCase()) || "Unknown University";
+    return (
+      this.universityNames.get(address.toLowerCase()) || "Unknown University"
+    );
+  }
+
+  // Get all universities
+  getUniversities(): University[] {
+    return this.universities;
+  }
+
+  // Load universities from localStorage
+  loadUniversities(): void {
+    if (typeof window !== "undefined") {
+      const storedUniversities = localStorage.getItem("universities");
+      if (storedUniversities) {
+        try {
+          this.universities = JSON.parse(storedUniversities);
+
+          // Rebuild the map
+          this.universities.forEach((uni) => {
+            this.universityNames.set(uni.address.toLowerCase(), uni.name);
+          });
+        } catch (err) {
+          console.error("Error parsing stored universities:", err);
+        }
+      }
+    }
+  }
+
+  // Remove university from storage
+  removeUniversityFromStorage(address: string): void {
+    this.universities = this.universities.filter(
+      (u) => u.address.toLowerCase() !== address.toLowerCase()
+    );
+    this.universityNames.delete(address.toLowerCase());
+
+    // Update localStorage
+    if (typeof window !== "undefined") {
+      localStorage.setItem("universities", JSON.stringify(this.universities));
+    }
   }
 
   isConnected(): boolean {
