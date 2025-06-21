@@ -13,15 +13,13 @@ export default function VerifyPage() {
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [recordDetails, setRecordDetails] = useState<any>(null);
   const [initialized, setInitialized] = useState(false);
-  
-  // Initialize blockchain service
+
   useEffect(() => {
     const init = async () => {
       try {
         await blockchainService.init();
         setInitialized(true);
-        
-        // Check if there's a record ID in the URL
+
         const idFromUrl = searchParams.get('id');
         if (idFromUrl) {
           setRecordId(idFromUrl);
@@ -31,71 +29,38 @@ export default function VerifyPage() {
         console.error('Error initializing blockchain service:', err);
       }
     };
-    
+
     init();
   }, [searchParams]);
-  
-  // Fetch university names from blockchain
-  const [universityNames, setUniversityNames] = useState<string[]>([]);
-  
-  useEffect(() => {
-    const fetchUniversityNames = async () => {
-      try {
-        // Get all records to extract unique university names
-        // This is a simplified approach - in a production app, you might want to
-        // implement a dedicated endpoint to fetch all university names
-        const address = await blockchainService.getAddress();
-        
-        // Try to get some records to extract university names
-        // This is just one approach - you could also store university names in local storage
-        // when they're added by the admin
-        if (recordDetails && recordDetails.universityName) {
-          // If we already have a record, use its university name
-          setUniversityNames([recordDetails.universityName]);
-        } else {
-          // Default fallback
-          setUniversityNames(['University name will appear after verification']);
-        }
-      } catch (error) {
-        console.error('Error fetching university names:', error);
-        setUniversityNames(['University name will appear after verification']);
-      }
-    };
-    
-    fetchUniversityNames();
-  }, [recordDetails]);
-  
+
   const verifyRecord = async (id: string) => {
     if (!id || !initialized) return;
-    
+
     setVerificationStatus('loading');
-    
+
     try {
-      // Convert ID to number
       const recordIdNumber = parseInt(id, 10);
-      if (isNaN(recordIdNumber)) {
-        throw new Error('Invalid record ID');
-      }
-      
-      // Get record from blockchain
+      if (isNaN(recordIdNumber)) throw new Error('Invalid record ID');
+
       const record = await blockchainService.getRecord(recordIdNumber);
-      
-      // Verify record is valid
-      const isValid = record.isValid;
-      
-      if (isValid) {
-        setVerificationStatus('success');
+
+      if (record.isValid) {
+        const universityName = record.universityName || await blockchainService.getUniversityName(record.university);
+
         setRecordDetails({
-          id: id,
+          id,
           studentName: record.studentName,
-          universityName: record.universityName || await blockchainService.getUniversityName(record.university),
-          recordType: record.recordType === 0 ? 'Transcript' : 
-                     record.recordType === 1 ? 'Certificate' : 
-                     record.recordType === 2 ? 'Degree' : 'Other',
+          universityName,
+          recordType:
+            record.recordType === 0 ? 'Transcript' :
+            record.recordType === 1 ? 'Certificate' :
+            record.recordType === 2 ? 'Degree' : 'Other',
           issueDate: new Date(record.timestamp * 1000).toLocaleDateString(),
           verified: true,
           issuer: truncateAddress(record.university),
         });
+
+        setVerificationStatus('success');
       } else {
         setVerificationStatus('error');
         setRecordDetails(null);
@@ -106,10 +71,12 @@ export default function VerifyPage() {
       setRecordDetails(null);
     }
   };
-  
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    await verifyRecord(recordId);
+    if (recordId) {
+      await verifyRecord(recordId);
+    }
   };
 
   return (
@@ -136,7 +103,7 @@ export default function VerifyPage() {
               type="submit" 
               variant="navy"
               disabled={verificationStatus === 'loading'}
-              className="px-8 py-3"
+              className="px-8 py-3 text-gray-700 hover:text-navy-700 transition-colors"
             >
               {verificationStatus === 'loading' ? 'Verifying...' : 'Verify'}
             </Button>
@@ -151,7 +118,7 @@ export default function VerifyPage() {
               </svg>
               <h2 className="text-xl font-semibold text-gray-900">Record Verified Successfully</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Record ID</p>
@@ -178,7 +145,7 @@ export default function VerifyPage() {
                 <p className="font-medium">{recordDetails.issuer}</p>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-green-200">
               <p className="text-sm text-gray-600">
                 This record has been cryptographically verified on the blockchain. The digital signature matches the issuing institution.

@@ -70,9 +70,11 @@ export interface AcademicRecordsInterface extends Interface {
       | "UNIVERSITY_ROLE"
       | "addRecord"
       | "addUniversity"
+      | "getAllUniversities"
       | "getRecord"
       | "getRoleAdmin"
       | "getStudentRecords"
+      | "getUniversityName"
       | "getUniversityRecords"
       | "grantRole"
       | "hasRole"
@@ -82,6 +84,7 @@ export interface AcademicRecordsInterface extends Interface {
       | "removeUniversity"
       | "renounceRole"
       | "revokeRole"
+      | "setUniversityName"
       | "supportsInterface"
       | "unpause"
       | "verifyRecord"
@@ -96,6 +99,7 @@ export interface AcademicRecordsInterface extends Interface {
       | "RoleAdminChanged"
       | "RoleGranted"
       | "RoleRevoked"
+      | "UniversityNameUpdated"
       | "Unpaused"
   ): EventFragment;
 
@@ -117,7 +121,11 @@ export interface AcademicRecordsInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "addUniversity",
-    values: [AddressLike]
+    values: [AddressLike, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAllUniversities",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "getRecord",
@@ -130,6 +138,10 @@ export interface AcademicRecordsInterface extends Interface {
   encodeFunctionData(
     functionFragment: "getStudentRecords",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getUniversityName",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getUniversityRecords",
@@ -162,6 +174,10 @@ export interface AcademicRecordsInterface extends Interface {
     values: [BytesLike, AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "setUniversityName",
+    values: [AddressLike, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "supportsInterface",
     values: [BytesLike]
   ): string;
@@ -185,6 +201,10 @@ export interface AcademicRecordsInterface extends Interface {
     functionFragment: "addUniversity",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getAllUniversities",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "getRecord", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getRoleAdmin",
@@ -192,6 +212,10 @@ export interface AcademicRecordsInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getStudentRecords",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getUniversityName",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -215,6 +239,10 @@ export interface AcademicRecordsInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setUniversityName",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
@@ -347,6 +375,19 @@ export namespace RoleRevokedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace UniversityNameUpdatedEvent {
+  export type InputTuple = [university: AddressLike, name: string];
+  export type OutputTuple = [university: string, name: string];
+  export interface OutputObject {
+    university: string;
+    name: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace UnpausedEvent {
   export type InputTuple = [account: AddressLike];
   export type OutputTuple = [account: string];
@@ -422,10 +463,12 @@ export interface AcademicRecords extends BaseContract {
   >;
 
   addUniversity: TypedContractMethod<
-    [universityAddress: AddressLike],
+    [universityAddress: AddressLike, name: string],
     [void],
     "nonpayable"
   >;
+
+  getAllUniversities: TypedContractMethod<[], [string[]], "view">;
 
   getRecord: TypedContractMethod<
     [recordId: BigNumberish],
@@ -438,6 +481,12 @@ export interface AcademicRecords extends BaseContract {
   getStudentRecords: TypedContractMethod<
     [studentId: string],
     [bigint[]],
+    "view"
+  >;
+
+  getUniversityName: TypedContractMethod<
+    [universityAddress: AddressLike],
+    [string],
     "view"
   >;
 
@@ -479,6 +528,12 @@ export interface AcademicRecords extends BaseContract {
 
   revokeRole: TypedContractMethod<
     [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  setUniversityName: TypedContractMethod<
+    [universityAddress: AddressLike, name: string],
     [void],
     "nonpayable"
   >;
@@ -527,10 +582,13 @@ export interface AcademicRecords extends BaseContract {
   getFunction(
     nameOrSignature: "addUniversity"
   ): TypedContractMethod<
-    [universityAddress: AddressLike],
+    [universityAddress: AddressLike, name: string],
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "getAllUniversities"
+  ): TypedContractMethod<[], [string[]], "view">;
   getFunction(
     nameOrSignature: "getRecord"
   ): TypedContractMethod<
@@ -544,6 +602,9 @@ export interface AcademicRecords extends BaseContract {
   getFunction(
     nameOrSignature: "getStudentRecords"
   ): TypedContractMethod<[studentId: string], [bigint[]], "view">;
+  getFunction(
+    nameOrSignature: "getUniversityName"
+  ): TypedContractMethod<[universityAddress: AddressLike], [string], "view">;
   getFunction(
     nameOrSignature: "getUniversityRecords"
   ): TypedContractMethod<[], [bigint[]], "view">;
@@ -588,6 +649,13 @@ export interface AcademicRecords extends BaseContract {
     nameOrSignature: "revokeRole"
   ): TypedContractMethod<
     [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setUniversityName"
+  ): TypedContractMethod<
+    [universityAddress: AddressLike, name: string],
     [void],
     "nonpayable"
   >;
@@ -649,6 +717,13 @@ export interface AcademicRecords extends BaseContract {
     RoleRevokedEvent.InputTuple,
     RoleRevokedEvent.OutputTuple,
     RoleRevokedEvent.OutputObject
+  >;
+  getEvent(
+    key: "UniversityNameUpdated"
+  ): TypedContractEvent<
+    UniversityNameUpdatedEvent.InputTuple,
+    UniversityNameUpdatedEvent.OutputTuple,
+    UniversityNameUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "Unpaused"
@@ -734,6 +809,17 @@ export interface AcademicRecords extends BaseContract {
       RoleRevokedEvent.InputTuple,
       RoleRevokedEvent.OutputTuple,
       RoleRevokedEvent.OutputObject
+    >;
+
+    "UniversityNameUpdated(address,string)": TypedContractEvent<
+      UniversityNameUpdatedEvent.InputTuple,
+      UniversityNameUpdatedEvent.OutputTuple,
+      UniversityNameUpdatedEvent.OutputObject
+    >;
+    UniversityNameUpdated: TypedContractEvent<
+      UniversityNameUpdatedEvent.InputTuple,
+      UniversityNameUpdatedEvent.OutputTuple,
+      UniversityNameUpdatedEvent.OutputObject
     >;
 
     "Unpaused(address)": TypedContractEvent<

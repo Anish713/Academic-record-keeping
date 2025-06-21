@@ -8,103 +8,75 @@ import { blockchainService } from '@/services/blockchain';
 
 export default function DashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState('');
-  const [universityName, setUniversityName] = useState('Example University');
-  const [universityNames, setUniversityNames] = useState<string[]>([]);
-  
-  useEffect(() => {
-    const fetchUniversityNames = async () => {
-      try {
-        // Get the connected address
-        const address = await blockchainService.getAddress();
-        
-        // Get university record IDs
-        const recordIds = await blockchainService.getUniversityRecords();
-        
-        // If there are record IDs, fetch the first record to get university name
-        if (recordIds.length > 0) {
-          const firstRecord = await blockchainService.getRecord(recordIds[0]);
-          if (firstRecord && firstRecord.universityName) {
-            setUniversityNames([firstRecord.universityName]);
-            return;
-          }
-        }
-        
-        // Fallback: Try to get university name from local storage mapping
-        const universityName = await blockchainService.getUniversityName(address);
-        if (universityName) {
-          setUniversityNames([universityName]);
-        } else {
-          setUniversityNames(['Your University']);
-        }
-      } catch (error) {
-        console.error('Error fetching university names:', error);
-        setUniversityNames(['Your University']);
-      }
-    };
-    
-    fetchUniversityNames();
-  }, []);
+  const [universityName, setUniversityName] = useState('Your University');
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   useEffect(() => {
     const initWallet = async () => {
       try {
-        // Initialize blockchain service
         const success = await blockchainService.init();
         if (!success) {
           window.location.href = '/login';
           return;
         }
-        
-        // Get connected address
-        const address = await blockchainService.getAddress();
+
+        const address = await blockchainService.getCurrentAddress();
         setConnectedAddress(address);
-        
-        // Check if the user has university role
+
         const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
         if (!isUniversity) {
           window.location.href = '/records';
           return;
         }
-        
-        setUniversityName('Example University'); // TODO : fetch university name from blockchain
+
+        // Try to fetch first record for university name
+        const recordIds = await blockchainService.getUniversityRecords();
+        if (recordIds.length > 0) {
+          const record = await blockchainService.getRecord(recordIds[0]);
+          if (record?.universityName) {
+            setUniversityName(record.universityName);
+          }
+        }
       } catch (err) {
         console.error('Error initializing wallet:', err);
         window.location.href = '/login';
       }
     };
-    
+
     initWallet();
   }, []);
-  
+
   useEffect(() => {
     const fetchRecords = async () => {
       if (!connectedAddress) return;
-      
+
       setLoading(true);
       setError('');
-      
+
       try {
-        // Get record IDs issued by the university
         const recordIds = await blockchainService.getUniversityRecords();
-        
-        // Fetch details for each record
+
         const recordsData = await Promise.all(
           recordIds.map(async (id: number) => {
             const record = await blockchainService.getRecord(id);
             return {
               id: id.toString(),
               studentName: record.studentName,
-              type: record.recordType === 0 ? 'Transcript' : 
-                    record.recordType === 1 ? 'Certificate' : 
-                    record.recordType === 2 ? 'Degree' : 'Other',
-              dateIssued: new Date(record.timestamp * 1000).toLocaleDateString()
+              type:
+                record.recordType === 0
+                  ? 'Transcript'
+                  : record.recordType === 1
+                  ? 'Certificate'
+                  : record.recordType === 2
+                  ? 'Degree'
+                  : 'Other',
+              dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
             };
           })
         );
-        
+
         setRecords(recordsData);
       } catch (err) {
         console.error('Error fetching records:', err);
@@ -113,7 +85,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-    
+
     fetchRecords();
   }, [connectedAddress]);
 
@@ -132,46 +104,35 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div>
-                <Button 
-                  variant="navy" 
-                  onClick={() => window.location.href = '/records/add'}
-                >
+                <Button variant="outline" onClick={() => (window.location.href = '/records/add')}>
                   Add New Record
                 </Button>
               </div>
             </div>
           </div>
-          
+
           <div className="px-6 py-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Total Records
-                </dt>
+                <dt className="text-sm font-medium text-gray-500 truncate">Total Records</dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">{records.length}</dd>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">Transcripts</dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {records.length}
+                  {records.filter((r) => r.type === 'Transcript').length}
                 </dd>
               </div>
             </div>
-            
+
             <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Transcripts
-                </dt>
+                <dt className="text-sm font-medium text-gray-500 truncate">Certificates</dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {records.filter(r => r.type === 'Transcript').length}
-                </dd>
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Certificates
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {records.filter(r => r.type === 'Certificate').length}
+                  {records.filter((r) => r.type === 'Certificate').length}
                 </dd>
               </div>
             </div>
@@ -180,30 +141,18 @@ export default function DashboardPage() {
 
         <div className="bg-white shadow overflow-hidden rounded-lg">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Recent Records
-            </h3>
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Records</h3>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Student Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date Issued
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Issued</th>
+                  <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -216,7 +165,7 @@ export default function DashboardPage() {
                       {record.studentName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${record.type === 'Transcript' ? 'bg-teal-100 text-teal-800' : 'bg-teal-100 text-teal-800'}`}>
+                      <span className="px-2 py-1 rounded-md text-xs font-medium bg-teal-100 text-teal-800">
                         {record.type}
                       </span>
                     </td>
@@ -224,13 +173,20 @@ export default function DashboardPage() {
                       {record.dateIssued}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/records/${record.id}`} className="text-blue-600 hover:text-blue-900 mr-4">View</a>
+                      <a href={`/records/${record.id}`} className="text-blue-600 hover:text-blue-900 mr-4">
+                        View
+                      </a>
                       <button className="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {error && (
+              <div className="p-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>

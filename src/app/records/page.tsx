@@ -51,7 +51,7 @@ export default function RecordsPage() {
         }
         
         // Get connected address
-        const address = await blockchainService.getAddress();
+        const address = await blockchainService.getCurrentAddress();
         setConnectedAddress(address);
         
         // Check if the user has university role
@@ -116,7 +116,7 @@ export default function RecordsPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Records</h1>
           <Button variant="navy">
-            New Record
+            New Record  
           </Button>
         </div>
 

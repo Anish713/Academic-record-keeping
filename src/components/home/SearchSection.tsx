@@ -32,13 +32,13 @@ export default function SearchSection() {
             type="text"
             value={recordId}
             onChange={(e) => setRecordId(e.target.value)}
-            placeholder="8898789"
-            className="flex-grow px-4 py-3 rounded-md border-0 focus:ring-2 focus:ring-navy-700 text-gray-900"
+            placeholder="24242424"
+            className="flex-grow px-4 py-3 rounded-md border-2 border-navy-700 focus:ring-2 focus:ring-navy-700 text-gray-900 hover:bg-accent"
             required
           />
           <Button 
             type="submit" 
-            variant="navy"
+            variant="outline"
             className="px-8 py-3 bg-navy-700 text-white rounded-md hover:bg-navy-800 transition-colors"
           >
             Find

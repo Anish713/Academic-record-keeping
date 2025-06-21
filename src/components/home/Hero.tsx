@@ -14,15 +14,16 @@ export default function Hero() {
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Button 
-            variant="navy" 
+            <Button
+            variant="navy"
             size="lg"
             asChild
-          >
+            className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
+            >
             <Link href="/try-for-free">
               Try for free →
             </Link>
-          </Button>
+            </Button>
         </div>
       </div>
     </section>

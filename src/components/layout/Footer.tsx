@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="mb-4 md:mb-0">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">Logo</span>
+                <span className="text-gray-700 hover:text-navy-700 transition-colors font-bold">Logo </span>
               </div>
               <span className="text-sm text-gray-600">
                 Academic Record Store
@@ -25,8 +25,8 @@ export default function Footer() {
             <Link href="/terms-conditions" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
               Terms & Conditions
             </Link>
-            <a href="mailto:contact@project.com" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
-              contact@project.com
+            <a href="mailto:anish@blockchain.com" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
+              anish@blockchain.com
             </a>
           </div>
         </div>

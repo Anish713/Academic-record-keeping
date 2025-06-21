@@ -10,7 +10,7 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="w-12 h-12 text-teal-600 mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold mb-2 text-navy-900">{title}</h3>
+      <h3 className="text-xl font-semibold mb-2 text-gray-700">{title}</h3>
       <p className="text-gray-600">{description}</p>
     </div>
   );
