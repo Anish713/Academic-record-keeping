@@ -187,7 +187,7 @@ export default function AddRecordPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" variant="navy" disabled={submitting}>
+              <Button type="submit" variant="outline" disabled={submitting}>
                 {submitting ? 'Submitting...' : 'Add Record'}
               </Button>
             </div>
