@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
@@ -12,13 +13,14 @@ export default function DashboardPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const initWallet = async () => {
       try {
         const success = await blockchainService.init();
         if (!success) {
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
 
@@ -27,7 +29,7 @@ export default function DashboardPage() {
 
         const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
         if (!isUniversity) {
-          window.location.href = '/records';
+          router.push('/records');
           return;
         }
 
@@ -41,7 +43,7 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.error('Error initializing wallet:', err);
-        window.location.href = '/login';
+        router.push('/login');
       }
     };
 
@@ -104,7 +106,10 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div>
-                <Button variant="outline" onClick={() => (window.location.href = '/records/add')}>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/records/add')}
+                >
                   Add New Record
                 </Button>
               </div>
@@ -173,9 +178,12 @@ export default function DashboardPage() {
                       {record.dateIssued}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/records/${record.id}`} className="text-blue-600 hover:text-blue-900 mr-4">
+                      <button
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        onClick={() => router.push(`/records/${record.id}`)}
+                      >
                         View
-                      </a>
+                      </button>
                       <button className="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                   </tr>

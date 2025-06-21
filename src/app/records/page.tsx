@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
@@ -39,51 +40,47 @@ export default function RecordsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connectedAddress, setConnectedAddress] = useState('');
-  
+  const router = useRouter();
+
   useEffect(() => {
     const initWallet = async () => {
       try {
         // Initialize blockchain service
         const success = await blockchainService.init();
         if (!success) {
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
-        
-        // Get connected address
+
         const address = await blockchainService.getCurrentAddress();
         setConnectedAddress(address);
-        
-        // Check if the user has university role
+
         const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
         if (isUniversity) {
-          window.location.href = '/dashboard';
+          router.push('/dashboard');
           return;
         }
       } catch (err) {
         console.error('Error initializing wallet:', err);
-        window.location.href = '/login';
+        router.push('/login');
       }
     };
-    
+
     initWallet();
   }, []);
-  
+
   useEffect(() => {
     const fetchRecords = async () => {
       if (!connectedAddress) return;
-      
+
       setLoading(true);
       setError('');
-      
+
       try {
-        // Get student ID (using address as student ID for simplicity)
         const studentId = connectedAddress;
-        
-        // Get record IDs for the student
+
         const recordIds = await blockchainService.getStudentRecords(studentId);
-        
-        // Fetch details for each record
+
         const recordsData = await Promise.all(
           recordIds.map(async (id: number) => {
             const record = await blockchainService.getRecord(id);
@@ -97,7 +94,7 @@ export default function RecordsPage() {
             };
           })
         );
-        
+
         setRecords(recordsData);
       } catch (err) {
         console.error('Error fetching records:', err);
@@ -106,7 +103,7 @@ export default function RecordsPage() {
         setLoading(false);
       }
     };
-    
+
     fetchRecords();
   }, [connectedAddress]);
 
@@ -115,7 +112,7 @@ export default function RecordsPage() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Records</h1>
-          <Button variant="navy">
+          <Button variant="navy" onClick={() => router.push('/records/new')}>
             New Record  
           </Button>
         </div>

@@ -16,20 +16,16 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Initialize blockchain service
       const success = await blockchainService.init();
       if (!success) {
         throw new Error('Failed to initialize blockchain service');
       }
 
-      // Get connected address
       const address = await blockchainService.getCurrentAddress();
 
-      // Check user roles
       const isAdmin = await blockchainService.hasRole('ADMIN_ROLE', address);
       const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
 
-      // Redirect based on role
       if (isAdmin) {
         router.push('/admin');
       } else if (isUniversity) {
@@ -115,9 +111,13 @@ export default function LoginPage() {
                 If you have a record ID, you can verify it without connecting a wallet.
               </p>
 
-              <Button variant="outline" className="w-full py-3" asChild>
-                <a href="/verify">Verify Record</a>
-              </Button>
+                <Button
+                variant="outline"
+                className="w-full py-3"
+                onClick={() => router.push('/verify')}
+                >
+                Verify Record
+                </Button>
             </div>
           </div>
         </div>

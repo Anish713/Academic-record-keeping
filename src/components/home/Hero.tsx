@@ -1,7 +1,11 @@
-import Link from 'next/link';
+"use client";
+
 import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 
 export default function Hero() {
+  const router = useRouter();
+
   return (
     <section className="w-full py-20 px-6 bg-white">
       <div className="max-w-5xl mx-auto text-center">
@@ -15,14 +19,12 @@ export default function Hero() {
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button
-            variant="navy"
-            size="lg"
-            asChild
-            className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
+              variant="navy"
+              size="lg"
+              className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
+              onClick={() => router.push('/try-for-free')}
             >
-            <Link href="/try-for-free">
               Try for free →
-            </Link>
             </Button>
         </div>
       </div>

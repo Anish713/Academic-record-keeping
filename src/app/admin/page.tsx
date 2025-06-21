@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { truncateAddress } from '@/lib/utils';
 
 export default function AdminPage() {
+  const router = useRouter();
   const [connectedAddress, setConnectedAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ export default function AdminPage() {
       try {
         const success = await blockchainService.init();
         if (!success) {
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
 
@@ -33,7 +35,7 @@ export default function AdminPage() {
         setIsAdmin(hasAdminRole);
 
         if (!hasAdminRole) {
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
 
@@ -53,7 +55,7 @@ export default function AdminPage() {
     };
 
     initWallet();
-  }, []);
+  }, [router]);
 
   const handlePauseToggle = async () => {
     try {
@@ -90,7 +92,7 @@ export default function AdminPage() {
 
       const updatedList = await blockchainService.getAllUniversities();
       setUniversities(updatedList);
-      console.log("Fetched universities updatedList:", updatedList); // Add this line
+      console.log("Fetched universities updatedList:", updatedList);
 
       setNewUniversityAddress('');
       setNewUniversityName('');

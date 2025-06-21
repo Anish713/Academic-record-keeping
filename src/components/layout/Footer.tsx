@@ -1,7 +1,10 @@
-import Link from 'next/link';
+"use client";
+
+import { useRouter } from 'next/navigation';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const router = useRouter();
 
   return (
     <footer className="w-full py-8 bg-white border-t">
@@ -19,13 +22,24 @@ export default function Footer() {
           </div>
 
           <div className="flex space-x-6 mb-4 md:mb-0">
-            <Link href="/privacy-policy" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
+            <button
+              type="button"
+              onClick={() => router.push('/privacy-policy')}
+              className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
+            >
               Privacy Policy
-            </Link>
-            <Link href="/terms-conditions" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/terms-conditions')}
+              className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
+            >
               Terms & Conditions
-            </Link>
-            <a href="mailto:anish@blockchain.com" className="text-sm text-gray-600 hover:text-navy-700 transition-colors">
+            </button>
+            <a
+              href="mailto:anish@blockchain.com"
+              className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
+            >
               anish@blockchain.com
             </a>
           </div>

@@ -16,7 +16,6 @@ export default function SearchSection() {
     
     setIsSearching(true);
     
-    // Redirect to verify page with the record ID
     router.push(`/verify?id=${recordId}`);
   };
 

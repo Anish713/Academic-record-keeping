@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
 import { blockchainService } from '@/services/blockchain';
@@ -11,6 +11,7 @@ export default function Header() {
   const [address, setAddress] = useState('');
   const [isUniversity, setIsUniversity] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const connectWallet = async () => {
@@ -41,41 +42,63 @@ export default function Header() {
     <header className="w-full py-4 px-6 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Link href="/" className="flex items-center">
+          <button
+            className="flex items-center"
+            onClick={() => router.push('/')}
+            type="button"
+          >
             <div className="w-10 h-10 rounded-full bg-navy-700 flex items-center justify-center">
               <span className="text-gray-700 hover:text-navy-700 transition-colors font-bold">Logo</span>
             </div>
-          </Link>
+          </button>
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/" className="text-gray-700 hover:text-navy-700 transition-colors">
+          <button
+            className="text-gray-700 hover:text-navy-700 transition-colors"
+            onClick={() => router.push('/')}
+            type="button"
+          >
             Home
-          </Link>
-          <Link href="/records" className="text-gray-700 hover:text-navy-700 transition-colors">
+          </button>
+          <button
+            className="text-gray-700 hover:text-navy-700 transition-colors"
+            onClick={() => router.push('/records')}
+            type="button"
+          >
             Records
-          </Link>
-          <Link href="/verify" className="text-gray-700 hover:text-navy-700 transition-colors">
+          </button>
+          <button
+            className="text-gray-700 hover:text-navy-700 transition-colors"
+            onClick={() => router.push('/verify')}
+            type="button"
+          >
             Verify
-          </Link>
-          <Link href="/about" className="text-gray-700 hover:text-navy-700 transition-colors">
+          </button>
+          <button
+            className="text-gray-700 hover:text-navy-700 transition-colors"
+            onClick={() => router.push('/about')}
+            type="button"
+          >
             About
-          </Link>
+          </button>
           {isAdmin && (
-            <Link
-              href="/admin"
+            <button
               className="text-gray-700 hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium"
+              onClick={() => router.push('/admin')}
+              type="button"
             >
               Admin
-            </Link>
+            </button>
           )}
           {isUniversity && (
-            <Link
-              href="/dashboard"
+            <button
               className="text-gray-700 hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium"
+              onClick={() => router.push('/dashboard')}
+              type="button"
             >
               Dashboard
-            </Link>
+            </button>
           )}
         </nav>
 
@@ -85,8 +108,12 @@ export default function Header() {
               {truncateAddress(address)}
             </div>
           ) : (
-            <Button asChild variant="navy" className='bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg'>
-              <Link href="/login">Login →</Link>
+            <Button
+              variant="navy"
+              className='bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg'
+              onClick={() => router.push('/login')}
+            >
+              Login →
             </Button>
           )}
         </div>

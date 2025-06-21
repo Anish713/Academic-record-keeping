@@ -17,7 +17,7 @@ export default function AddRecordPage() {
   // Form state
   const [studentName, setStudentName] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [recordType, setRecordType] = useState('0'); // Default to Transcript (0)
+  const [recordType, setRecordType] = useState('0');
   const [ipfsHash, setIpfsHash] = useState('');
   const [universityName, setUniversityName] = useState('');
 
@@ -53,6 +53,7 @@ export default function AddRecordPage() {
       return;
     }
 
+    //// TODO: Validation for ipfsHash
     // if (!/^Qm[a-zA-Z0-9]{44}$/.test(ipfsHash.trim())) {
     //   setError('Invalid IPFS hash format. It should start with "Qm..."');
     //   return;
@@ -173,7 +174,7 @@ export default function AddRecordPage() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
               />
               <p className="mt-1 text-sm text-gray-500">
-                Use IPFS services like Pinata or Infura to upload and get a hash.
+                TODO: Use IPFS services like Pinata or Infura to upload and get a hash.
               </p>
             </div>
 
