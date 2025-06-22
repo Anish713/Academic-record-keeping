@@ -69,7 +69,7 @@ class BlockchainService {
   }
 
   async hasRole(
-    role: "ADMIN_ROLE" | "UNIVERSITY_ROLE",
+    role: "ADMIN_ROLE" | "UNIVERSITY_ROLE" | "SUPER_ADMIN_ROLE",
     address: string
   ): Promise<boolean> {
     this.ensureContract();
@@ -202,6 +202,71 @@ class BlockchainService {
   async isPaused(): Promise<boolean> {
     this.ensureContract();
     return await this.contract!.paused();
+  }
+
+  // Returns the total number of records stored
+  async getTotalRecords(): Promise<number> {
+    this.ensureContract();
+    const total: bigint = await this.contract!.getTotalRecords();
+    return Number(total);
+  }
+
+  // Returns the total number of custom record types added
+  async getTotalCustomTypes(): Promise<number> {
+    this.ensureContract();
+    const total: bigint = await this.contract!.getTotalCustomTypes();
+    return Number(total);
+  }
+
+  // Returns a list of all admin addresses
+  async getAllAdmins(): Promise<string[]> {
+    this.ensureContract();
+    return await this.contract!.getAllAdmins();
+  }
+
+  // Adds a new admin to the system
+  async addAdmin(adminAddress: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.addAdmin(adminAddress);
+    await tx.wait();
+  }
+
+  // Removes an existing admin
+  async removeAdmin(adminAddress: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.removeAdmin(adminAddress);
+    await tx.wait();
+  }
+
+  // Removes a university from the system
+  async removeUniversity(universityAddress: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.removeUniversity(universityAddress);
+    await tx.wait();
+  }
+
+  // Adds a new custom record type and returns its type ID
+  async addCustomRecordType(
+    name: string,
+    description: string
+  ): Promise<number> {
+    this.ensureContract();
+    const tx = await this.contract!.addCustomRecordType(name, description);
+    const receipt = await tx.wait();
+    const event = receipt.logs?.find((log: any) => {
+      try {
+        const parsed = this.contract!.interface.parseLog(log);
+        console.log("Parsed event:", parsed);
+        return parsed?.name === "CustomRecordTypeCreated";
+      } catch {
+        return false;
+      }
+    });
+    if (!event) {
+      throw new Error("CustomRecordTypeAdded event not found");
+    }
+    const parsedEvent = this.contract!.interface.parseLog(event);
+    return Number(parsedEvent?.args.recordTypeId);
   }
 }
 
