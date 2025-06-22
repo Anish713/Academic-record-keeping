@@ -8,6 +8,7 @@ Deployed Contracts for Testing (Latest at buttom):
 
 1. 0x66F6E2cC1e9EC54Df3AB4CBa57CB4D95b8065aA1
 2. 0x47871d256eA9B9dE04EF80e7a90D24a6b1CaFa44
+3. 0xB8bc2E8D04276566A6f96eA1eA363Eb866b636f2
 
 ## Features
 
