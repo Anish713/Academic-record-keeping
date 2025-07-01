@@ -186,6 +186,37 @@ class BlockchainService {
     await tx.wait();
   }
 
+  // Record sharing functions
+  async shareRecord(recordId: number, sharedWithAddress: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.shareRecord(recordId, sharedWithAddress);
+    await tx.wait();
+  }
+
+  async unshareRecord(recordId: number, sharedWithAddress: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.unshareRecord(recordId, sharedWithAddress);
+    await tx.wait();
+  }
+
+  async getSharedRecords(sharedWithAddress: string): Promise<number[]> {
+    this.ensureContract();
+    const recordIds = await this.contract!.getSharedRecords(sharedWithAddress);
+    return recordIds.map((id: bigint) => Number(id));
+  }
+
+  async isRecordSharedWith(recordId: number, userAddress: string): Promise<boolean> {
+    this.ensureContract();
+    return await this.contract!.isRecordSharedWith(recordId, userAddress);
+  }
+
+  // Student registration
+  async registerStudent(studentId: string): Promise<void> {
+    this.ensureContract();
+    const tx = await this.contract!.registerStudent(studentId);
+    await tx.wait();
+  }
+
   // Pause control
   async pauseContract(): Promise<void> {
     this.ensureContract();

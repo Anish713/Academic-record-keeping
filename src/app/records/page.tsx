@@ -15,7 +15,7 @@ interface RecordItemProps {
 
 function RecordItem({ id, studentName, type, dateIssued }: RecordItemProps) {
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50">
+    <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/records/${id}`}>
       <td className="py-4 px-6 text-sm text-gray-900">{studentName}</td>
       <td className="py-4 px-6 text-sm">
         <span className={`px-2 py-1 rounded-md text-xs font-medium ${type === 'Transcript' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-800'}`}>
@@ -24,7 +24,20 @@ function RecordItem({ id, studentName, type, dateIssued }: RecordItemProps) {
       </td>
       <td className="py-4 px-6 text-sm text-gray-500">{dateIssued}</td>
       <td className="py-4 px-6 text-sm text-right">
-        <a href={`/verify?id=${id}`} className="text-blue-600 hover:text-blue-900 mr-3">
+        <a 
+          href={`/records/${id}`} 
+          className="text-navy-600 hover:text-navy-900 mr-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+        <a 
+          href={`/verify?id=${id}`} 
+          className="text-blue-600 hover:text-blue-900 mr-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -56,10 +69,10 @@ export default function RecordsPage() {
         setConnectedAddress(address);
 
         const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
-        if (isUniversity) {
-          router.push('/dashboard');
-          return;
-        }
+        // if (isUniversity) {
+        //   router.push('/dashboard');
+        //   return;
+        // }
       } catch (err) {
         console.error('Error initializing wallet:', err);
         router.push('/login');
