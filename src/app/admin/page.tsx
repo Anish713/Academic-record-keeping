@@ -147,8 +147,8 @@ export default function AdminPage() {
 
       // Load custom types for universities
       if (isAdmin) {
-        // Load university custom types if user is a university
-        // This would need to be implemented in your blockchain service
+        // TODO: Load university custom types if user is a university
+        // This would need to be implemented in blockchain service
       }
     } catch (err) {
       console.error('Error loading data:', err);
