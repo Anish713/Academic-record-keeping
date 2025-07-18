@@ -331,7 +331,7 @@ export default function AdminPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <h1 className="text-3xl font-bold text-white flex items-center">
                 <Shield className="w-8 h-8 text-blue-600 mr-3" />
                 {isSuperAdmin ? 'Super Admin Panel' : 'Admin Panel'}
               </h1>
@@ -384,7 +384,7 @@ export default function AdminPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-2 mb-8 border-b border-gray-200 pb-4">
+        <div className="flex space-x-2 mb-8 text-white border-b border-gray-200 pb-4">
           <TabButton id="overview" label="Overview" icon={Eye} />
           <TabButton id="universities" label="Universities" icon={GraduationCap} />
           {isSuperAdmin && <TabButton id="admins" label="Admin Management" icon={Users} />}
@@ -395,7 +395,7 @@ export default function AdminPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           {activeTab === 'overview' && (
             <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">System Overview</h2>
+              <h2 className="text-xl font-semibold text-black mb-4">System Overview</h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h3 className="font-medium text-gray-900">Recent Activity</h3>
@@ -435,7 +435,7 @@ export default function AdminPage() {
           {activeTab === 'universities' && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-black-500">University Management</h2>
+                <h2 className="text-xl font-semibold text-black">University Management</h2>
                 <Button onClick={() => setActiveTab('overview')} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
                   Back to Overview
                 </Button>
@@ -443,14 +443,14 @@ export default function AdminPage() {
 
               {/* Add University Form */}
               <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="font-medium mb-4">Add New University</h3>
-                <form onSubmit={handleAddUniversity} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h3 className="font-medium mb-4 text-black">Add New University</h3>
+                <form onSubmit={handleAddUniversity} className="text-black grid grid-cols-1 md:grid-cols-3 gap-4">
                   <input
                     type="text"
                     placeholder="University Address (0x...)"
                     value={newUniversityAddress}
                     onChange={(e) => setNewUniversityAddress(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-4 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <input
                     type="text"
@@ -468,7 +468,7 @@ export default function AdminPage() {
 
               {/* Universities List */}
               <div className="space-y-4">
-                <h3 className="font-medium">Registered Universities ({universities.length})</h3>
+                <h3 className="font-medium text-black">Registered Universities ({universities.length})</h3>
                 {universities.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <School className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -561,7 +561,7 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'custom-types' && (
-            <div className="p-6">
+            <div className="p-6 text-black">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">Custom Record Types</h2>
                 <Button onClick={() => setActiveTab('overview')} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
@@ -570,7 +570,7 @@ export default function AdminPage() {
               </div>
 
               {/* Add Custom Type Form */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <div className="bg-gray-50 text-black rounded-lg p-6 mb-6">
                 <h3 className="font-medium mb-4">Create Custom Record Type</h3>
                 <form onSubmit={handleAddCustomType} className="space-y-4">
                   <input

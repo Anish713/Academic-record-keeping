@@ -185,8 +185,8 @@ export default function RecordDetailPage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Record Details</h1>
-          <p className="text-lg text-gray-600">
+          <h1 className="text-3xl font-bold mb-2">Record Details</h1>
+          <p className="text-lg">
             View and manage your academic record
           </p>
         </div>

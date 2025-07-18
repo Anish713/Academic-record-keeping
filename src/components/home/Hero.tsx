@@ -9,7 +9,7 @@ export default function Hero() {
   return (
     <section className="w-full py-20 px-6 bg-white">
       <div className="max-w-5xl mx-auto text-center">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-navy-900 mb-6">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-6">
           Immutable Academic Records on the Blockchain
         </h1>
         
@@ -22,7 +22,7 @@ export default function Hero() {
               variant="navy"
               size="lg"
               className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
-              onClick={() => router.push('/try-for-free')}
+              onClick={() => router.push('/verify')}
             >
               Try for free →
             </Button>

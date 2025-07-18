@@ -24,6 +24,7 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
     function addRecord(
         string calldata studentId,
         string calldata studentName,
+        address studentAddress,
         string calldata universityName,
         string calldata ipfsHash,
         string calldata metadataHash,
@@ -32,6 +33,7 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         uint256 recordId = recordData.addRecord(
             studentId,
             studentName,
+            studentAddress,
             universityName,
             ipfsHash,
             metadataHash,

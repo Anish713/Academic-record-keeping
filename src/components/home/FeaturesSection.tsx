@@ -44,7 +44,7 @@ export default function FeaturesSection() {
     <section className="w-full py-16 px-6 bg-gray-50">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-navy-900 mb-4">Features</h2>
+          <h2 className="text-3xl font-bold text-black mb-4">Features</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Our blockchain-based academic record system offers several advantages over traditional methods.
           </p>
