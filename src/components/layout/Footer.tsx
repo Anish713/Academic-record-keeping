@@ -12,8 +12,8 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
-                <span className="text-gray-700 hover:text-navy-700 transition-colors font-bold">Logo </span>
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
+                <img src="/favicon.ico" alt="CertiChain Logo" className="w-full h-full object-contain" />
               </div>
               <span className="text-sm text-gray-600">
                 Academic Record Store

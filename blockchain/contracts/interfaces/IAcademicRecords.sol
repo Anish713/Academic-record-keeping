@@ -2,17 +2,60 @@
 pragma solidity ^0.8.28;
 
 interface IAcademicRecords {
-    enum RecordType {
-        TRANSCRIPT,
-        CERTIFICATE,
-        DEGREE,
-        OTHER
-    }
+ enum RecordType {
+
+    // === Academic Records ===
+    TRANSCRIPT,
+    DEGREE,
+    MARKSHEET,
+    DIPLOMA,
+    CERTIFICATE,
+    PROVISIONAL_CERTIFICATE,
+
+    // === Identity & Personal Verification ===
+    BIRTH_CERTIFICATE,
+    CITIZENSHIP,
+    NATIONAL_ID,
+    PASSPORT_COPY,
+    CHARACTER_CERTIFICATE,
+
+    // === Admission & Examination Documents ===
+    ENTRANCE_RESULTS,
+    ADMIT_CARD,
+    COUNSELING_LETTER,
+    SEAT_ALLOTMENT_LETTER,
+    MIGRATION_CERTIFICATE,
+    TRANSFER_CERTIFICATE,
+
+    // === Administrative & Financial Records ===
+    BILLS,
+    FEE_RECEIPT,
+    SCHOLARSHIP_LETTER,
+    LOAN_DOCUMENT,
+    HOSTEL_CLEARANCE,
+
+    // === Academic Schedules & Communications ===
+    ROUTINE,
+    NOTICE,
+    CIRCULAR,
+    NEWS,
+
+    // === Miscellaneous & Supporting Documents ===
+    RECOMMENDATION_LETTER,
+    INTERNSHIP_CERTIFICATE,
+    EXPERIENCE_LETTER,
+    BONAFIDE_CERTIFICATE,
+    NO_OBJECTION_CERTIFICATE,
+
+    // === Fallback ===
+    OTHER
+}
 
     struct Record {
         uint256 id;
         string studentId;
         string studentName;
+        address studentAddress;
         string universityName;
         string ipfsHash;
         string metadataHash;

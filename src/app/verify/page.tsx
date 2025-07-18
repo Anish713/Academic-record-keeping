@@ -83,8 +83,8 @@ export default function VerifyPage() {
     <MainLayout>
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Verify Academic Records</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-teal-600 mb-4">Verify Academic Records</h1>
+          <p className="text-lg text-white max-w-2xl mx-auto">
             Enter the record ID to verify the authenticity of an academic record on the blockchain.
           </p>
         </div>
@@ -122,27 +122,27 @@ export default function VerifyPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Record ID</p>
-                <p className="font-medium">{recordDetails.id}</p>
+                <p className="font-medium text-black">{recordDetails.id}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Student Name</p>
-                <p className="font-medium">{recordDetails.studentName}</p>
+                <p className="font-medium text-black">{recordDetails.studentName}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">University</p>
-                <p className="font-medium">{recordDetails.universityName}</p>
+                <p className="font-medium text-black">{recordDetails.universityName}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Record Type</p>
-                <p className="font-medium">{recordDetails.recordType}</p>
+                <p className="font-medium text-black">{recordDetails.recordType}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Issue Date</p>
-                <p className="font-medium">{recordDetails.issueDate}</p>
+                <p className="font-medium text-black">{recordDetails.issueDate}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Issuer</p>
-                <p className="font-medium">{recordDetails.issuer}</p>
+                <p className="font-medium text-black">{recordDetails.issuer}</p>
               </div>
             </div>
 
