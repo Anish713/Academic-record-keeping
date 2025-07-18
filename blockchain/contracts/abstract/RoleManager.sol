@@ -36,12 +36,21 @@ abstract contract RoleManager is AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(SUPER_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
+        
+        _adminList.push(msg.sender);
+        _adminExists[msg.sender] = true;
     }
 
     // Super admin functions
     function addAdmin(address adminAddress) external onlySuperAdmin {
         require(!hasRole(ADMIN_ROLE, adminAddress), "Already an admin");
         _grantRole(ADMIN_ROLE, adminAddress);
+        
+        if (!_adminExists[adminAddress]) {
+            _adminList.push(adminAddress);
+            _adminExists[adminAddress] = true;
+        }
+        
         emit AdminAdded(adminAddress, msg.sender);
     }
 
@@ -49,6 +58,17 @@ abstract contract RoleManager is AccessControl {
         require(adminAddress != SUPER_ADMIN, "Cannot remove super admin");
         require(hasRole(ADMIN_ROLE, adminAddress), "Not an admin");
         _revokeRole(ADMIN_ROLE, adminAddress);
+        
+        if (_adminExists[adminAddress]) {
+            for (uint i = 0; i < _adminList.length; i++) {
+                if (_adminList[i] == adminAddress) {
+                    _adminList[i] = _adminList[_adminList.length - 1];
+                    _adminList.pop();
+                    _adminExists[adminAddress] = false;
+                    break;
+                }
+            }
+        }
         emit AdminRemoved(adminAddress, msg.sender);
     }
 
@@ -115,10 +135,10 @@ abstract contract RoleManager is AccessControl {
         return _universityList;
     }
 
+    address[] private _adminList;
+    mapping(address => bool) private _adminExists;
+
     function getAllAdmins() external view returns (address[] memory) {
-        // TODO: This would need to be implemented with a separate tracking mechanism
-        // For now, just return empty array - you'd need to track admins separately
-        address[] memory admins = new address[](0);
-        return admins;
+        return _adminList;
     }
 }

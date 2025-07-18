@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import fs from "fs";
 
 async function main() {
   console.log("Deploying Academic Records System...");
@@ -39,7 +40,11 @@ async function main() {
     studentManagementAddress
   );
 
-  // Step 4: Verify deployment
+  // Step 4: Fetch Super Admin from contract
+  const superAdmin = await academicRecords.SUPER_ADMIN();
+  console.log("Super Admin (on-chain):", superAdmin);
+
+  // Step 5: Verify deployment
   console.log("\n3. Verifying deployment...");
   try {
     const totalRecords = await academicRecords.getTotalRecords();
@@ -52,21 +57,20 @@ async function main() {
     throw error;
   }
 
-  // Step 5: Display deployment summary
+  // Step 6: Display deployment summary
   console.log("\n📋 Deployment Summary:");
   console.log("========================");
   console.log(`RecordStorage Library: ${recordStorageAddress}`);
   console.log(`AcademicRecords Contract: ${academicRecordsAddress}`);
   console.log(`StudentManagement Contract: ${studentManagementAddress}`);
-  console.log(`Deployer Address: ${deployer.address}`);
+  console.log(`Super Admin: ${superAdmin}`);
   console.log(`Network: ${(await deployer.provider.getNetwork()).name}`);
 
-  // Step 6: Save deployment addresses to a file
-  const fs = require("fs");
+  // Step 7: Save deployment addresses to a file
   const deploymentInfo = {
     network: (await deployer.provider.getNetwork()).name,
     timestamp: new Date().toISOString(),
-    deployer: deployer.address,
+    superAdmin: superAdmin,
     contracts: {
       RecordStorage: recordStorageAddress,
       AcademicRecords: academicRecordsAddress,
@@ -84,6 +88,7 @@ async function main() {
     recordStorage: recordStorageAddress,
     academicRecords: academicRecordsAddress,
     studentManagement: studentManagementAddress,
+    superAdmin: superAdmin,
   };
 }
 
