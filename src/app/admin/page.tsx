@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
@@ -93,17 +93,24 @@ export default function AdminPage() {
         }
 
         const address = await blockchainService.getCurrentAddress();
+        console.log('Connected Address:', address);
         setConnectedAddress(address);
 
         const hasAdminRole = await blockchainService.hasRole('ADMIN_ROLE', address);
+        console.log('Admin Role:', hasAdminRole);
         setIsAdmin(hasAdminRole);
 
         const hasSuperAdminRole = await blockchainService.hasRole('SUPER_ADMIN_ROLE', address);
+        console.log('Super Admin Role:', hasSuperAdminRole);
         setIsSuperAdmin(hasSuperAdminRole);
 
         if (!hasAdminRole && !hasSuperAdminRole) {
           router.push('/login');
           return;
+        }
+
+        if (hasSuperAdminRole && !hasAdminRole) {
+          setIsAdmin(true);
         }
 
         await loadData();
@@ -300,7 +307,7 @@ export default function AdminPage() {
     </div>
   );
 
-  const TabButton = ({ id, label, icon: Icon }: { id: string, label: string, icon: any }) => (
+  const TabButton = ({ id, label, icon: Icon }: { id: string, label: ReactNode, icon: any }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -384,11 +391,11 @@ export default function AdminPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-2 mb-8 text-white border-b border-gray-200 pb-4">
-          <TabButton id="overview" label="Overview" icon={Eye} />
-          <TabButton id="universities" label="Universities" icon={GraduationCap} />
-          {isSuperAdmin && <TabButton id="admins" label="Admin Management" icon={Users} />}
-          <TabButton id="custom-types" label="Custom Types" icon={Settings} />
+        <div className="flex space-x-2 mb-8 border-b border-gray-200 pb-4">
+          <TabButton id="overview" label={<span className="text-white">Overview</span>} icon={Eye} />
+          <TabButton id="universities" label={<span className="text-white">Universities</span>} icon={GraduationCap} />
+          {isSuperAdmin && <TabButton id="admins" label={<span className="text-white">Admin Management</span>} icon={Users} />}
+          <TabButton id="custom-types" label={<span className="text-white">Custom Types</span>} icon={Settings} />
         </div>
 
         {/* Tab Content */}
@@ -503,14 +510,14 @@ export default function AdminPage() {
           {activeTab === 'admins' && isSuperAdmin && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Admin Management</h2>
+                <h2 className="text-xl font-semibold text-black">Admin Management</h2>
                 <Button onClick={() => setActiveTab('overview')} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
                   Back to Overview
                 </Button>
               </div>
 
               {/* Add Admin Form */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <div className="bg-gray-50 rounded-lg p-6 mb-6 text-black">
                 <h3 className="font-medium mb-4">Add New Admin</h3>
                 <form onSubmit={handleAddAdmin} className="flex gap-4">
                   <input
@@ -518,7 +525,7 @@ export default function AdminPage() {
                     placeholder="Admin Address (0x...)"
                     value={newAdminAddress}
                     onChange={(e) => setNewAdminAddress(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <Button type="submit" disabled={loading}>
                     <UserPlus className="w-4 h-4 mr-2" />
@@ -529,19 +536,19 @@ export default function AdminPage() {
 
               {/* Admins List */}
               <div className="space-y-4">
-                <h3 className="font-medium">System Admins ({admins.length})</h3>
+                <h3 className="font-medium text-black">System Admins ({admins.length})</h3>
                 {admins.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <Users className="w-12 h-12 mx-auto mb-4 text-black" />
                     <p>No admins found</p>
                   </div>
                 ) : (
                   <div className="grid gap-4">
                     {admins.map((admin, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                      <div key={idx} className="flex items-center justify-between p-4 border text-black border-gray-200 rounded-lg hover:bg-gray-50">
                         <div>
-                          <p className="font-medium text-gray-900">{truncateAddress(admin.address)}</p>
-                          <p className="text-sm text-gray-600">Admin Role</p>
+                          <p className="font-medium text-black">{truncateAddress(admin.address)}</p>
+                          <p className="text-sm text-black">Admin Role</p>
                         </div>
                         <div className="flex space-x-2">
                           <Button 

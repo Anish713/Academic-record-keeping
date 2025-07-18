@@ -29,6 +29,9 @@ class BlockchainService {
   private UNIVERSITY_ROLE = ethers.keccak256(
     ethers.toUtf8Bytes("UNIVERSITY_ROLE")
   );
+  private SUPER_ADMIN_ROLE = ethers.keccak256(
+    ethers.toUtf8Bytes("SUPER_ADMIN_ROLE")
+  );
 
   async init(): Promise<boolean> {
     try {
@@ -73,8 +76,18 @@ class BlockchainService {
     address: string
   ): Promise<boolean> {
     this.ensureContract();
-    const roleHash =
-      role === "ADMIN_ROLE" ? this.ADMIN_ROLE : this.UNIVERSITY_ROLE;
+    let roleHash;
+    
+    if (role === "ADMIN_ROLE") {
+      roleHash = this.ADMIN_ROLE;
+    } else if (role === "UNIVERSITY_ROLE") {
+      roleHash = this.UNIVERSITY_ROLE;
+    } else if (role === "SUPER_ADMIN_ROLE") {
+      roleHash = this.SUPER_ADMIN_ROLE;
+    } else {
+      throw new Error("Invalid role");
+    }
+    
     return await this.contract!.hasRole(roleHash, address);
   }
 

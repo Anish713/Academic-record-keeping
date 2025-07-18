@@ -11,6 +11,7 @@ export default function Header() {
   const [address, setAddress] = useState('');
   const [isUniversity, setIsUniversity] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,9 +28,11 @@ export default function Header() {
 
         const hasUniversityRole = await blockchainService.hasRole('UNIVERSITY_ROLE', userAddress);
         const hasAdminRole = await blockchainService.hasRole('ADMIN_ROLE', userAddress);
+        const hasSuperAdminRole = await blockchainService.hasRole('SUPER_ADMIN_ROLE', userAddress);
 
         setIsUniversity(hasUniversityRole);
         setIsAdmin(hasAdminRole);
+        setIsSuperAdmin(hasSuperAdminRole);
       } catch (error) {
         console.error('Failed to connect wallet:', error);
       }
@@ -82,13 +85,13 @@ export default function Header() {
           >
             About
           </button>
-          {isAdmin && (
+          {(isAdmin || isSuperAdmin) && (
             <button
               className="text-gray-700 hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium"
               onClick={() => router.push('/admin')}
               type="button"
             >
-              Admin
+              {isSuperAdmin ? 'Super Admin' : 'Admin'}
             </button>
           )}
           {isUniversity && (
