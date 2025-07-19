@@ -95,10 +95,10 @@ export default function AddRecordPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl text-black mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Add New Academic Record</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-teal-500 mb-4">Add New Academic Record</h1>
+          <p className="text-lg text-white max-w-2xl mx-auto">
             You are submitting a record on behalf of: <strong>{universityName}</strong>
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function AddRecordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="studentName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="studentName" className="block text-sm font-medium text-black">
                 Student Name *
               </label>
               <input
@@ -127,7 +127,7 @@ export default function AddRecordPage() {
             </div>
 
             <div>
-              <label htmlFor="studentId" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="studentId" className="block text-sm font-medium text-black">
                 Student ID *
               </label>
               <input
@@ -151,7 +151,7 @@ export default function AddRecordPage() {
                 onChange={(e) => setRecordType(e.target.value)}
                 disabled={submitting}
                 required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 text-black px-3 focus:ring-navy-500 focus:border-navy-500"
               >
                 <option value="0">Transcript</option>
                 <option value="1">Certificate</option>
