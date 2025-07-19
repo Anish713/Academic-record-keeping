@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 
+/**
+ * Renders a search section with a form for entering a record ID and navigating to a verification page.
+ *
+ * Displays a styled input field and submit button. On submission, validates the input and routes to the `/verify` page with the entered record ID as a query parameter.
+ */
 export default function SearchSection() {
   const [recordId, setRecordId] = useState('');
   const [isSearching, setIsSearching] = useState(false);

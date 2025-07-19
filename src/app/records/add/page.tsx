@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { ethers } from 'ethers';
 
+/**
+ * React page component for universities to add new academic records to the blockchain.
+ *
+ * Initializes by connecting to the blockchain wallet, verifying university role, and fetching university and record type information. Renders a form for entering student details, selecting a record type, and providing an IPFS hash for the document. Validates input and submits the record to the blockchain. Handles loading, error, and submission states, and redirects on success or access failure.
+ *
+ * @returns The rendered page for adding a new academic record.
+ */
 export default function AddRecordPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
