@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -62,7 +63,7 @@ export default function Header() {
             type="button"
           >
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
-              <img src="/favicon.ico" alt="CertiChain Logo" className="w-full h-full object-contain" />
+              <Image src="/favicon.ico" alt="CertiChain Logo" width={40} height={40} className="w-full h-full object-contain" />
             </div>
           </button>
         </div>
