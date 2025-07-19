@@ -3,6 +3,11 @@
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Renders a hero section highlighting immutable academic records on the blockchain, featuring a call-to-action button that navigates to the verification page.
+ *
+ * Displays a prominent heading, descriptive text, and a styled button that routes users to the `/verify` page when clicked.
+ */
 export default function Hero() {
   const router = useRouter();
 

@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
 import { blockchainService } from '@/services/blockchain';
 
+/**
+ * Renders the application header with role-based navigation and wallet connection status.
+ *
+ * Displays navigation buttons based on the user's blockchain roles (university, admin, super admin, or student) and shows either the connected wallet address or a login button. Handles wallet connection and role detection on mount.
+ */
 export default function Header() {
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState('');

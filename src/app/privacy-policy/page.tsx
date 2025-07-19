@@ -2,6 +2,13 @@
 
 import MainLayout from '@/components/layout/MainLayout';
 
+/**
+ * Renders the CertiChain privacy policy page with detailed information about data collection, usage, blockchain data handling, user rights, and contact details.
+ *
+ * Displays a dynamically generated "Last Updated" date and organizes the policy content into clearly structured sections for user reference.
+ *
+ * @returns The privacy policy page as a React element.
+ */
 export default function PrivacyPolicyPage() {
   return (
     <MainLayout>

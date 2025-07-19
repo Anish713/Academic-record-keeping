@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
 import { blockchainService } from '@/services/blockchain';
 
+/**
+ * Displays the university dashboard for authenticated university users, showing summary statistics and a table of recent academic records.
+ *
+ * Redirects to the login page if the user is not authenticated or lacks the required university role. Fetches and displays the university name, total records, transcripts, certificates, and a list of recent records with options to view or add new records. Handles loading and error states during data retrieval.
+ */
 export default function DashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState('');
   const [universityName, setUniversityName] = useState('Your University');

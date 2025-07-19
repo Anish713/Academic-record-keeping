@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { truncateAddress } from '@/lib/utils';
 
+/**
+ * Displays detailed information about an academic record and provides sharing controls for the record owner.
+ *
+ * Fetches and renders record details based on the route parameter. If the connected user owns the record, enables sharing the record with other Ethereum addresses and revoking access. Handles blockchain initialization, loading states, and error messages.
+ */
 export default function RecordDetailPage() {
   const params = useParams();
   const router = useRouter();
