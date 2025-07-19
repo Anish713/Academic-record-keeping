@@ -47,7 +47,7 @@ export default function RecordDetailPage() {
     };
 
     init();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchRecord = async () => {
@@ -57,28 +57,31 @@ export default function RecordDetailPage() {
       setError('');
 
       try {
-        const recordId = parseInt(params.id as string, 10);
-        if (isNaN(recordId)) throw new Error('Invalid record ID');
+        const recordIdParam = params.id as string;
+        if (!recordIdParam) throw new Error('Record ID is missing');
 
-        const recordData = await blockchainService.getRecord(recordId);
+        const parsedRecordId = parseInt(recordIdParam, 10);
+        if (isNaN(parsedRecordId)) throw new Error('Invalid record ID');
+
+        const recordData = await blockchainService.getRecord(parsedRecordId);
         console.log('Fetched record data:', recordData);
         
         if (!recordData) {
           setError('Record not found');
-          console.error('Record not found for recordId:', recordId);
+          console.error('Record not found for recordId:', parsedRecordId);
           setLoading(false);
           return;
         }
 
         // Format record data
         const formattedRecord = {
-          id: recordId,
+          id: parsedRecordId,
           studentName: recordData.studentName,
           studentId: recordData.studentId,
           studentAddress: recordData.studentAddress,
           universityName: recordData.universityName || await blockchainService.getUniversityName(recordData.university),
-          recordType: recordData.recordType === 0 ? 'Transcript' : 
-                    recordData.recordType === 1 ? 'Certificate' : 
+          recordType: recordData.recordType === 0 ? 'Transcript' :
+                    recordData.recordType === 1 ? 'Certificate' :
                     recordData.recordType === 2 ? 'Degree' : 'Other',
           issueDate: new Date(recordData.timestamp * 1000).toLocaleDateString(),
           verified: recordData.isValid,
@@ -89,7 +92,7 @@ export default function RecordDetailPage() {
         setRecord(formattedRecord);
         
         if (recordData.studentId === connectedAddress) {
-          await loadSharedAddresses(recordId);
+          await loadSharedAddresses(parsedRecordId);
         }
       } catch (err) {
         console.error('Error fetching record:', err);

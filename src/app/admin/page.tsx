@@ -16,19 +16,13 @@ import {
   GraduationCap, 
   Settings, 
   Trash2,
-  Edit,
-  Search,
-  Filter,
-  MoreVertical,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   School,
   UserPlus,
   UserMinus,
   FileText,
   Eye,
-  Share2
 } from 'lucide-react';
 
 interface University {

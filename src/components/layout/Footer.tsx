@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -18,7 +19,7 @@ export default function Footer() {
           <div className="mb-4 md:mb-0">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
-                <img src="/favicon.ico" alt="CertiChain Logo" className="w-full h-full object-contain" />
+                <Image src="/favicon.ico" alt="CertiChain Logo" width={32} height={32} className="w-full h-full object-contain" />
               </div>
               <span className="text-sm text-gray-600">
                 Academic Record Store
@@ -51,7 +52,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          © {currentYear} Blockchain Fellowship Team. All Rights Reserved.
+          © {currentYear} Anish Shrestha. All Rights Reserved.
         </div>
       </div>
     </footer>
