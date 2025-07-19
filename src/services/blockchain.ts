@@ -344,7 +344,7 @@ class BlockchainService {
       throw new Error("CustomRecordTypeCreated event not found");
     }
     const parsedEvent = this.contract!.interface.parseLog(event);
-    return Number(parsedEvent?.args.recordTypeId);
+    return Number(parsedEvent?.args.typeId);
   }
 }
 
