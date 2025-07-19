@@ -81,10 +81,10 @@ export default function RecordsPage() {
         setConnectedAddress(address);
 
         const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
-        // if (isUniversity) {
-        //   router.push('/dashboard');
-        //   return;
-        // }
+        if (isUniversity) {
+          router.push('/dashboard');
+          return;
+        }
       } catch (err) {
         console.error('Error initializing wallet:', err);
         router.push('/login');
@@ -92,7 +92,7 @@ export default function RecordsPage() {
     };
 
     initWallet();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchRecords = async () => {

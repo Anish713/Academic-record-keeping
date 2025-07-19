@@ -11,15 +11,12 @@ import { Button } from '@/components/ui/Button';
  */
 export default function SearchSection() {
   const [recordId, setRecordId] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!recordId.trim()) return;
-    
-    setIsSearching(true);
     
     router.push(`/verify?id=${recordId}`);
   };
@@ -36,7 +33,7 @@ export default function SearchSection() {
             type="text"
             value={recordId}
             onChange={(e) => setRecordId(e.target.value)}
-            placeholder="24242424"
+            placeholder="Enter record ID"
             className="flex-grow px-4 py-3 rounded-md border-2 border-navy-700 focus:ring-2 focus:ring-navy-700 text-gray-900 hover:bg-accent"
             required
           />
