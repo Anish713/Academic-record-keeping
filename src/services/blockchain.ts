@@ -246,17 +246,17 @@ class BlockchainService {
   }
 
   // Student registration
-  async registerStudent(studentId: string): Promise<void> {
+  async registerStudent(studentId: string, studentAddress?: string): Promise<void> {
     if (!this.studentManagementContract) {
       throw new Error("StudentManagement contract not initialized");
     }
-    // Get the current address to register with the student ID
-    const address = await this.getCurrentAddress();
+    // If studentAddress is provided, use it (admin registering a student)
+    // Otherwise, use the current user's address (student self-registration)
+    const address = studentAddress || await this.getCurrentAddress();
     const tx = await this.studentManagementContract.registerStudent(studentId, address);
     await tx.wait();
   }
 
-  // Get student ID from address
   async getStudentId(address: string): Promise<string> {
     if (!this.studentManagementContract) {
       throw new Error("StudentManagement contract not initialized");

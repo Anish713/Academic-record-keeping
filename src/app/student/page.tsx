@@ -207,7 +207,7 @@ export default function StudentDashboardPage() {
               <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
                   <dt className="text-sm font-medium text-gray-500 truncate">Student ID</dt>
-                  <dd className="mt-1 text-lg font-semibold text-gray-900">{studentId}</dd>
+                  <dd className="mt-1 text-lg font-semibold text-gray-900 truncate">{studentId}</dd>
                 </div>
               </div>
 

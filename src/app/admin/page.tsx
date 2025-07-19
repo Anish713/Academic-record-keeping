@@ -6,6 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { truncateAddress } from '@/lib/utils';
+import { ethers } from 'ethers';
 import { 
   Shield, 
   Play, 
@@ -82,6 +83,10 @@ export default function AdminPage() {
     totalUniversities: 0,
     totalAdmins: 0
   });
+  
+  // Student management
+  const [newStudentId, setNewStudentId] = useState('');
+  const [newStudentAddress, setNewStudentAddress] = useState('');
 
   useEffect(() => {
     const initWallet = async () => {
@@ -217,6 +222,32 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+  
+  const handleRegisterStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudentId || !newStudentAddress) {
+      showMessage('Please enter both student ID and wallet address', 'error');
+      return;
+    }
+
+    if (!ethers.isAddress(newStudentAddress)) {
+      showMessage('Invalid Ethereum address format', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await blockchainService.registerStudent(newStudentId, newStudentAddress);
+      setNewStudentId('');
+      setNewStudentAddress('');
+      showMessage('Student registered successfully', 'success');
+    } catch (err) {
+      console.error('Error registering student:', err);
+      showMessage('Failed to register student', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,6 +323,8 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  // handleRegisterStudent is already defined above
 
   const StatCard = ({ icon: Icon, title, value, color }: { icon: any, title: string, value: number, color: string }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
@@ -395,6 +428,7 @@ export default function AdminPage() {
           <TabButton id="overview" label={<span className="text-white">Overview</span>} icon={Eye} />
           <TabButton id="universities" label={<span className="text-white">Universities</span>} icon={GraduationCap} />
           {isSuperAdmin && <TabButton id="admins" label={<span className="text-white">Admin Management</span>} icon={Users} />}
+          <TabButton id="students" label={<span className="text-white">Student Management</span>} icon={UserPlus} />
           <TabButton id="custom-types" label={<span className="text-white">Custom Types</span>} icon={Settings} />
         </div>
 
@@ -567,70 +601,142 @@ export default function AdminPage() {
             </div>
           )}
 
-          {activeTab === 'custom-types' && (
-            <div className="p-6 text-black">
+          {activeTab === 'students' && (
+            <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Custom Record Types</h2>
+                <h2 className="text-xl font-semibold text-black">Student Management</h2>
+                <Button onClick={() => setActiveTab('overview')} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Back to Overview
+                </Button>
+              </div>
+
+              {/* Register Student Form */}
+              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                <h3 className="font-medium mb-4 text-black">Register Student</h3>
+                <p className="text-sm text-black mb-4">
+                  Register a student with their ID and wallet address. This will allow them to access their records when they connect with their wallet.
+                </p>
+                <form onSubmit={handleRegisterStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Student ID"
+                    value={newStudentId}
+                    onChange={(e) => setNewStudentId(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Student Wallet Address (0x...)"
+                    value={newStudentAddress}
+                    onChange={(e) => setNewStudentAddress(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-black focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <Button type="submit" variant="outline" disabled={loading}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Register Student
+                  </Button>
+                </form>
+              </div>
+
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      When you add a record for a student, make sure to use the same Student ID that you register here. 
+                      Students will be able to see all records associated with their ID when they connect with their registered wallet address.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'custom-types' && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-black">Custom Record Types</h2>
                 <Button onClick={() => setActiveTab('overview')} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
                   Back to Overview
                 </Button>
               </div>
 
               {/* Add Custom Type Form */}
-              <div className="bg-gray-50 text-black rounded-lg p-6 mb-6">
-                <h3 className="font-medium mb-4">Create Custom Record Type</h3>
-                <form onSubmit={handleAddCustomType} className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                <h3 className="font-medium mb-4 text-black">Add New Record Type</h3>
+                <form onSubmit={handleAddCustomType} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <input
                     type="text"
                     placeholder="Type Name"
                     value={newTypeName}
                     onChange={(e) => setNewTypeName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <textarea
+                  <input
+                    type="text"
                     placeholder="Description"
                     value={newTypeDescription}
                     onChange={(e) => setNewTypeDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={3}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <Button type="submit" disabled={loading}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Type
+                    Add Type
                   </Button>
                 </form>
               </div>
 
               {/* Custom Types List */}
               <div className="space-y-4">
-                <h3 className="font-medium">Your Custom Types ({customTypes.length})</h3>
-                {customTypes.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No custom record types created yet</p>
+                <h3 className="font-medium text-black">Available Record Types</h3>
+                <div className="grid gap-4">
+                  {/* Default types */}
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">Default Types</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {[
+                        'Transcript', 'Degree', 'Marksheet', 'Diploma', 'Certificate',
+                        'Provisional Certificate', 'Birth Certificate', 'Citizenship',
+                        'National ID', 'Passport Copy', 'Character Certificate'
+                      ].map((type, idx) => (
+                        <div key={idx} className="px-3 py-2 bg-gray-100 rounded-md text-sm text-gray-700">
+                          {type}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {customTypes.map((type, idx) => (
-                      <div key={idx} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{type.name}</h4>
-                            <p className="text-sm text-gray-600 mt-1">{type.description}</p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Created by {truncateAddress(type.creator)}
-                            </p>
-                          </div>
-                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            type.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {type.isActive ? 'Active' : 'Inactive'}
-                          </div>
+
+                  {/* Custom types would be listed here */}
+                  {customTypes.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No custom record types added yet</p>
+                    </div>
+                  ) : (
+                    customTypes.map((type, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{type.name}</h4>
+                          <p className="text-sm text-gray-600">{type.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Created by {truncateAddress(type.creator)} on {new Date(type.timestamp * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            className={`px-3 py-1 text-sm ${type.isActive ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                          >
+                            {type.isActive ? 'Disable' : 'Enable'}
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}
