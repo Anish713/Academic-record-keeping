@@ -53,9 +53,8 @@ next-env.d.ts
 .env.production.local
 .env
 
-# local development files
-/contracts/
 
-*storybook.log
-storybook-static
-package-lock.json
+# artifacts
+/artifacts/
+/cache/
+/typechain-types/
