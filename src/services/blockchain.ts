@@ -341,7 +341,7 @@ class BlockchainService {
       }
     });
     if (!event) {
-      throw new Error("CustomRecordTypeAdded event not found");
+      throw new Error("CustomRecordTypeCreated event not found");
     }
     const parsedEvent = this.contract!.interface.parseLog(event);
     return Number(parsedEvent?.args.recordTypeId);
