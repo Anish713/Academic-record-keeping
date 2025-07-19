@@ -167,7 +167,7 @@ export default function RecordDetailPage() {
 
   const isOwnRecord = () => {
     if (!record || !connectedAddress) return false;
-    return record.studentId === connectedAddress;
+    return record.studentAddress === connectedAddress;
   };
 
   return (
