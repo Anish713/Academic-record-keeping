@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { truncateAddress } from '@/lib/utils';
 import { blockchainService } from '@/services/blockchain';
@@ -13,6 +13,7 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const connectWallet = async () => {
@@ -41,6 +42,11 @@ export default function Header() {
     connectWallet();
   }, []);
 
+  const isActive = (path: string) =>
+    pathname === path
+      ? 'text-black font-bold border-b-2 border-blue-700 pb-1'
+      : 'text-gray-700';
+
   return (
     <header className="w-full py-4 px-6 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -58,28 +64,28 @@ export default function Header() {
 
         <nav className="hidden md:flex items-center space-x-6">
           <button
-            className="text-gray-700 hover:text-navy-700 transition-colors"
+            className={`${isActive('/')} hover:text-navy-700 transition-colors`}
             onClick={() => router.push('/')}
             type="button"
           >
             Home
           </button>
           <button
-            className="text-gray-700 hover:text-navy-700 transition-colors"
+            className={`${isActive('/records')} hover:text-navy-700 transition-colors`}
             onClick={() => router.push('/records')}
             type="button"
           >
             Records
           </button>
           <button
-            className="text-gray-700 hover:text-navy-700 transition-colors"
+            className={`${isActive('/verify')} hover:text-navy-700 transition-colors`}
             onClick={() => router.push('/verify')}
             type="button"
           >
             Verify
           </button>
           <button
-            className="text-gray-700 hover:text-navy-700 transition-colors"
+            className={`${isActive('/about')} hover:text-navy-700 transition-colors`}
             onClick={() => router.push('/about')}
             type="button"
           >
@@ -87,7 +93,7 @@ export default function Header() {
           </button>
           {(isAdmin || isSuperAdmin) && (
             <button
-              className="text-gray-700 hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium"
+              className={`${isActive('/admin')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
               onClick={() => router.push('/admin')}
               type="button"
             >
@@ -96,11 +102,20 @@ export default function Header() {
           )}
           {isUniversity && (
             <button
-              className="text-gray-700 hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium"
+              className={`${isActive('/dashboard')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
               onClick={() => router.push('/dashboard')}
               type="button"
             >
               Dashboard
+            </button>
+          )}
+          {isConnected && !isUniversity && !isAdmin && !isSuperAdmin && (
+            <button
+              className={`${isActive('/student')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
+              onClick={() => router.push('/student')}
+              type="button"
+            >
+              Student Dashboard
             </button>
           )}
         </nav>
@@ -113,7 +128,7 @@ export default function Header() {
           ) : (
             <Button
               variant="navy"
-              className='bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg'
+              className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
               onClick={() => router.push('/login')}
             >
               Login →

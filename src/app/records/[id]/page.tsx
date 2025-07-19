@@ -70,6 +70,7 @@ export default function RecordDetailPage() {
           id: recordId,
           studentName: recordData.studentName,
           studentId: recordData.studentId,
+          studentAddress: recordData.studentAddress,
           universityName: recordData.universityName || await blockchainService.getUniversityName(recordData.university),
           recordType: recordData.recordType === 0 ? 'Transcript' : 
                     recordData.recordType === 1 ? 'Certificate' : 
@@ -208,7 +209,7 @@ export default function RecordDetailPage() {
             </Button>
           </div>
         ) : record ? (
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-white shadow-md rounded-lg text-black overflow-hidden">
             {/* Record details section */}
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Record Information</h2>
@@ -241,6 +242,10 @@ export default function RecordDetailPage() {
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Issuer</p>
                   <p className="font-medium">{record.issuerTruncated}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Student Address</p>
+                  <p className="font-medium">{record.studentAddress}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Verification Status</p>

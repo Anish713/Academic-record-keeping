@@ -17,9 +17,11 @@ export default function AddRecordPage() {
   // Form state
   const [studentName, setStudentName] = useState('');
   const [studentId, setStudentId] = useState('');
+  const [studentAddress, setStudentAddress] = useState('');
   const [recordType, setRecordType] = useState('0');
   const [ipfsHash, setIpfsHash] = useState('');
   const [universityName, setUniversityName] = useState('');
+  const [recordTypes, setRecordTypes] = useState<{id: number, name: string}[]>([]);
 
   useEffect(() => {
     const initWallet = async () => {
@@ -34,6 +36,15 @@ export default function AddRecordPage() {
         const uniName = await blockchainService.getUniversityName(address);
         setUniversityName(uniName);
         setIsUniversity(true);
+        
+        const types = [];
+        for (let i = 0; i < 36; i++) { // Based on the RecordType enum in IAcademicRecords.sol
+          types.push({
+            id: i,
+            name: getRecordTypeName(i)
+          });
+        }
+        setRecordTypes(types);
       } catch (err: any) {
         console.error('Initialization error:', err);
         setError('Failed to connect wallet or fetch university info.');
@@ -44,12 +55,37 @@ export default function AddRecordPage() {
 
     initWallet();
   }, [router]);
+  
+  const getRecordTypeName = (typeId: number): string => {
+    const types = [
+      // Academic Records
+      'Transcript', 'Degree', 'Marksheet', 'Diploma', 'Certificate', 'Provisional Certificate',
+      // Identity & Personal Verification
+      'Birth Certificate', 'Citizenship', 'National ID', 'Passport Copy', 'Character Certificate',
+      // Admission & Examination Documents
+      'Entrance Results', 'Admit Card', 'Counseling Letter', 'Seat Allotment Letter', 'Migration Certificate', 'Transfer Certificate',
+      // Administrative & Financial Records
+      'Bills', 'Fee Receipt', 'Scholarship Letter', 'Loan Document', 'Hostel Clearance',
+      // Academic Schedules & Communications
+      'Routine', 'Notice', 'Circular', 'News',
+      // Miscellaneous & Supporting Documents
+      'Recommendation Letter', 'Internship Certificate', 'Experience Letter', 'Bonafide Certificate', 'No Objection Certificate',
+      // Fallback
+      'Other'
+    ];
+    return types[typeId] || 'Unknown';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentName.trim() || !studentId.trim() || !ipfsHash.trim()) {
+    if (!studentName.trim() || !studentId.trim() || !studentAddress.trim() || !ipfsHash.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!ethers.isAddress(studentAddress.trim())) {
+      setError('Invalid Ethereum address format for student.');
       return;
     }
 
@@ -68,6 +104,7 @@ export default function AddRecordPage() {
       await blockchainService.addRecord(
         studentId.trim(),
         studentName.trim(),
+        studentAddress.trim(),
         universityName,
         ipfsHash.trim(),
         metadataHash,
@@ -140,6 +177,25 @@ export default function AddRecordPage() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
               />
             </div>
+            
+            <div>
+              <label htmlFor="studentAddress" className="block text-sm font-medium text-black">
+                Student Ethereum Address *
+              </label>
+              <input
+                type="text"
+                id="studentAddress"
+                value={studentAddress}
+                onChange={(e) => setStudentAddress(e.target.value)}
+                disabled={submitting}
+                required
+                placeholder="0x..."
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                The Ethereum address of the student who will own this record.
+              </p>
+            </div>
 
             <div>
               <label htmlFor="recordType" className="block text-sm font-medium text-gray-700">
@@ -153,9 +209,11 @@ export default function AddRecordPage() {
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 text-black px-3 focus:ring-navy-500 focus:border-navy-500"
               >
-                <option value="0">Transcript</option>
-                <option value="1">Certificate</option>
-                <option value="2">Degree</option>
+                {recordTypes.map((type) => (
+                  <option key={type.id} value={type.id.toString()}>
+                    {type.name}
+                  </option>
+                ))}
               </select>
             </div>
 
