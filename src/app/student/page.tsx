@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { truncateAddress } from '@/lib/utils';
 
+/**
+ * Displays the student dashboard, allowing students to view their academic records and records shared with them via a blockchain service.
+ *
+ * Connects to the blockchain wallet, determines registration status, and fetches student details, personal records, and shared records. Provides UI for viewing record summaries and navigating to detailed record pages. Handles wallet connection, registration checks, and error states, redirecting users as appropriate.
+ */
 export default function StudentDashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState('');
   const [studentId, setStudentId] = useState('');

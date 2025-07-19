@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 import { truncateAddress } from '@/lib/utils';
 
+/**
+ * React component for verifying academic records on the blockchain.
+ *
+ * Displays a form for entering a record ID, verifies the record using the blockchain service, and shows verification results with detailed record information or error messages.
+ *
+ * Automatically initializes the blockchain service and supports pre-filling the record ID from the URL query parameters.
+ *
+ * @returns The rendered verification page component.
+ */
 export default function VerifyPage() {
   const searchParams = useSearchParams();
   const [recordId, setRecordId] = useState('');

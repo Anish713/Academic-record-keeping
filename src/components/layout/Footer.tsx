@@ -2,6 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 
+/**
+ * Renders the footer section with branding, navigation links, and contact information.
+ *
+ * Displays a logo, the application name, links to privacy policy and terms & conditions pages, a contact email, and a dynamic copyright.
+ */
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const router = useRouter();

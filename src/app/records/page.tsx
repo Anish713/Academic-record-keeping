@@ -13,6 +13,11 @@ interface RecordItemProps {
   dateIssued: string;
 }
 
+/**
+ * Renders a table row displaying a student's record with actions to view or verify the record.
+ *
+ * The row is clickable and navigates to the record's detail page. Inline action links allow viewing or verifying the record without triggering row navigation.
+ */
 function RecordItem({ id, studentName, type, dateIssued }: RecordItemProps) {
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/records/${id}`}>
@@ -48,6 +53,13 @@ function RecordItem({ id, studentName, type, dateIssued }: RecordItemProps) {
   );
 }
 
+/**
+ * Displays a list of student records fetched from a blockchain service, handling wallet connection, loading, and error states.
+ *
+ * Redirects to the login page if the blockchain wallet is not connected. Once connected, retrieves and displays the student's records in a table format, with options to create a new record and view or verify existing records.
+ *
+ * @returns The rendered records page component.
+ */
 export default function RecordsPage() {
   const [records, setRecords] = useState<RecordItemProps[]>([]);
   const [loading, setLoading] = useState(true);

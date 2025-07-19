@@ -1,6 +1,13 @@
 import { ethers } from "hardhat";
 import fs from "fs";
 
+/**
+ * Deploys the Academic Records System contracts and saves deployment details.
+ *
+ * Deploys the RecordStorage library and the AcademicRecords contract (linked to the library), retrieves the StudentManagement contract address and Super Admin from the deployed contracts, verifies the deployment by checking initial contract state, logs a deployment summary, and writes deployment information to a JSON file.
+ *
+ * @returns An object containing the deployed addresses for RecordStorage, AcademicRecords, StudentManagement, and the Super Admin address.
+ */
 async function main() {
   console.log("Deploying Academic Records System...");
 

@@ -2,6 +2,11 @@
 
 import MainLayout from '@/components/layout/MainLayout';
 
+/**
+ * Renders the Terms and Conditions page for the CertiChain platform, including legal information, user responsibilities, and contact details.
+ *
+ * Displays a dynamically generated "Last Updated" date and organizes the terms into clearly defined sections using semantic HTML and Tailwind CSS for styling.
+ */
 export default function TermsConditionsPage() {
   return (
     <MainLayout>

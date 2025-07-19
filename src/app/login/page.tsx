@@ -6,6 +6,13 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { blockchainService } from '@/services/blockchain';
 
+/**
+ * Renders the login page, allowing users to connect an Ethereum wallet for role-based access or verify a record by ID.
+ *
+ * Provides wallet connection with role detection (admin or university) and redirects users accordingly. Displays error messages for connection issues and offers an alternative verification method without a wallet.
+ *
+ * @returns The login page React element.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const [isConnecting, setIsConnecting] = useState(false);

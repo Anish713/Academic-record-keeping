@@ -2,6 +2,13 @@
 
 import React from 'react';
 
+/**
+ * Renders a static informational page describing the CertiChain platform, its mission, vision, operational overview, and key features.
+ *
+ * This component displays styled content about CertiChain's use of blockchain for secure academic record storage and verification, including a feature list and explanatory sections.
+ *
+ * @returns A React element containing the About page content for CertiChain.
+ */
 export default function About() {
   return (
     <div className="py-16 px-6 max-w-4xl mx-auto">
