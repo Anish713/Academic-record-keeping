@@ -1,10 +1,12 @@
 import { ethers } from "ethers";
 import AcademicRecordsABI from "@/contracts/AcademicRecords.json";
+import StudentManagementABI from "@/contracts/StudentManagement.json";
 
 export interface Record {
   id: number;
   studentName: string;
   studentId: string;
+  studentAddress: string;
   recordType: number;
   dataHash: string;
   timestamp: number;
@@ -22,8 +24,10 @@ class BlockchainService {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.Signer | null = null;
   private contract: ethers.Contract | null = null;
+  private studentManagementContract: ethers.Contract | null = null;
   private contractAddress: string =
     process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
+  private studentManagementAddress: string = process.env.NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS || "";
 
   private ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("ADMIN_ROLE"));
   private UNIVERSITY_ROLE = ethers.keccak256(
@@ -54,6 +58,12 @@ class BlockchainService {
         AcademicRecordsABI.abi,
         this.signer
       );
+      
+      this.studentManagementContract = new ethers.Contract(
+        this.studentManagementAddress,
+        StudentManagementABI.abi,
+        this.signer
+      );
 
       return true;
     } catch (error) {
@@ -77,7 +87,7 @@ class BlockchainService {
   ): Promise<boolean> {
     this.ensureContract();
     let roleHash;
-    
+
     if (role === "ADMIN_ROLE") {
       roleHash = this.ADMIN_ROLE;
     } else if (role === "UNIVERSITY_ROLE") {
@@ -87,7 +97,7 @@ class BlockchainService {
     } else {
       throw new Error("Invalid role");
     }
-    
+
     return await this.contract!.hasRole(roleHash, address);
   }
 
@@ -132,6 +142,7 @@ class BlockchainService {
   async addRecord(
     studentId: string,
     studentName: string,
+    studentAddress: string,
     universityName: string,
     ipfsHash: string,
     metadataHash: string,
@@ -141,6 +152,7 @@ class BlockchainService {
     const tx = await this.contract!.addRecord(
       studentId,
       studentName,
+      studentAddress,
       universityName,
       ipfsHash,
       metadataHash,
@@ -167,6 +179,7 @@ class BlockchainService {
       id: recordId,
       studentName: record.studentName,
       studentId: record.studentId,
+      studentAddress: record.studentAddress,
       recordType: Number(record.recordType),
       dataHash: record.ipfsHash,
       timestamp: Number(record.timestamp),
@@ -200,13 +213,19 @@ class BlockchainService {
   }
 
   // Record sharing functions
-  async shareRecord(recordId: number, sharedWithAddress: string): Promise<void> {
+  async shareRecord(
+    recordId: number,
+    sharedWithAddress: string
+  ): Promise<void> {
     this.ensureContract();
     const tx = await this.contract!.shareRecord(recordId, sharedWithAddress);
     await tx.wait();
   }
 
-  async unshareRecord(recordId: number, sharedWithAddress: string): Promise<void> {
+  async unshareRecord(
+    recordId: number,
+    sharedWithAddress: string
+  ): Promise<void> {
     this.ensureContract();
     const tx = await this.contract!.unshareRecord(recordId, sharedWithAddress);
     await tx.wait();
@@ -218,16 +237,31 @@ class BlockchainService {
     return recordIds.map((id: bigint) => Number(id));
   }
 
-  async isRecordSharedWith(recordId: number, userAddress: string): Promise<boolean> {
+  async isRecordSharedWith(
+    recordId: number,
+    userAddress: string
+  ): Promise<boolean> {
     this.ensureContract();
     return await this.contract!.isRecordSharedWith(recordId, userAddress);
   }
 
   // Student registration
   async registerStudent(studentId: string): Promise<void> {
-    this.ensureContract();
-    const tx = await this.contract!.registerStudent(studentId);
+    if (!this.studentManagementContract) {
+      throw new Error("StudentManagement contract not initialized");
+    }
+    // Get the current address to register with the student ID
+    const address = await this.getCurrentAddress();
+    const tx = await this.studentManagementContract.registerStudent(studentId, address);
     await tx.wait();
+  }
+
+  // Get student ID from address
+  async getStudentId(address: string): Promise<string> {
+    if (!this.studentManagementContract) {
+      throw new Error("StudentManagement contract not initialized");
+    }
+    return await this.studentManagementContract.getStudentId(address);
   }
 
   // Pause control
