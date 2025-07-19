@@ -50,6 +50,15 @@ interface CustomRecordType {
   isActive: boolean;
 }
 
+/**
+ * Renders the administrative dashboard for managing a blockchain-based academic record system.
+ *
+ * Provides role-based access for super admins and admins to manage universities, admins, students, and custom record types. Handles authentication, contract state (pause/unpause), and displays system statistics and entity management forms within a tabbed interface.
+ *
+ * Redirects unauthorized users to the login page and displays real-time feedback for all blockchain operations.
+ *
+ * @returns The admin dashboard React component.
+ */
 export default function AdminPage() {
   const router = useRouter();
   const [connectedAddress, setConnectedAddress] = useState('');

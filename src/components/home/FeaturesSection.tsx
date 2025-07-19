@@ -6,6 +6,13 @@ interface FeatureCardProps {
   description: string;
 }
 
+/**
+ * Renders a styled card displaying a feature icon, title, and description.
+ *
+ * @param icon - The visual icon representing the feature
+ * @param title - The title of the feature
+ * @param description - A brief description of the feature
+ */
 function FeatureCard({ icon, title, description }: FeatureCardProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -16,6 +23,11 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
   );
 }
 
+/**
+ * Displays a section highlighting the key features of a blockchain-based academic record system.
+ *
+ * Renders a heading, descriptive text, and a responsive grid of feature cards, each illustrating a specific advantage such as tamper-proof records, easy verification, 24/7 accessibility, and privacy control.
+ */
 export default function FeaturesSection() {
   const features = [
     {
