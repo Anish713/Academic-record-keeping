@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
@@ -17,11 +17,75 @@ export default function StudentDashboardPage() {
   const [studentId, setStudentId] = useState('');
   const [records, setRecords] = useState<any[]>([]);
   const [sharedRecords, setSharedRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
   const [fetching, setFetching] = useState(false);
   const router = useRouter();
+
+  const fetchRecords = useCallback(async (id: string) => {
+    try {
+      const recordIds = await blockchainService.getStudentRecords(id);
+
+      const recordsData = await Promise.all(
+        recordIds.map(async (id: number) => {
+          const record = await blockchainService.getRecord(id);
+          return {
+            id: id.toString(),
+            studentName: record.studentName,
+            universityName: record.universityName,
+            type: getRecordTypeName(record.recordType),
+            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+          };
+        })
+      );
+
+      setRecords(recordsData);
+    } catch (err) {
+      console.error('Error fetching records:', err);
+      setError('Failed to fetch records. Please try again.');
+    }
+  }, []);
+
+  const fetchSharedRecords = useCallback(async (address: string) => {
+    try {
+      const recordIds = await blockchainService.getSharedRecords(address);
+
+      const recordsData = await Promise.all(
+        recordIds.map(async (id: number) => {
+          const record = await blockchainService.getRecord(id);
+          return {
+            id: id.toString(),
+            studentName: record.studentName,
+            universityName: record.universityName,
+            type: getRecordTypeName(record.recordType),
+            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+          };
+        })
+      );
+
+      setSharedRecords(recordsData);
+    } catch (err) {
+      console.error('Error fetching shared records:', err);
+    }
+  }, []);
+
+  const fetchStudentDetails = useCallback(
+    async (address: string) => {
+      try {
+        const studentIdFromAddress = await blockchainService.getStudentId(address);
+        if (studentIdFromAddress && studentIdFromAddress.length > 0) {
+          setStudentId(studentIdFromAddress);
+          setIsRegistered(true);
+          await fetchRecords(studentIdFromAddress);
+          await fetchSharedRecords(address);
+        }
+      } catch (err) {
+        console.error('Error fetching student details:', err);
+        setError('Failed to fetch student details. Please try again.');
+      }
+    },
+    [fetchRecords, fetchSharedRecords]
+  );
 
   useEffect(() => {
     const initWallet = async () => {
@@ -47,75 +111,11 @@ export default function StudentDashboardPage() {
       } catch (err) {
         console.error('Error initializing wallet:', err);
         setError('Failed to connect to blockchain. Please make sure your wallet is connected.');
-      } finally {
-        setLoading(false);
       }
     };
 
     initWallet();
-  }, []);
-  
-  const fetchStudentDetails = async (address: string) => {
-    try {
-      const studentIdFromAddress = await blockchainService.getStudentId(address);
-      if (studentIdFromAddress && studentIdFromAddress.length > 0) {
-        setStudentId(studentIdFromAddress);
-        setIsRegistered(true);
-        await fetchRecords(studentIdFromAddress);
-        await fetchSharedRecords(address);
-      }
-    } catch (err) {
-      console.error('Error fetching student details:', err);
-      setError('Failed to fetch student details. Please try again.');
-    }
-  };
-
-  const fetchRecords = async (id: string) => {
-    try {
-      const recordIds = await blockchainService.getStudentRecords(id);
-
-      const recordsData = await Promise.all(
-        recordIds.map(async (id: number) => {
-          const record = await blockchainService.getRecord(id);
-          return {
-            id: id.toString(),
-            studentName: record.studentName,
-            universityName: record.universityName,
-            type: getRecordTypeName(record.recordType),
-            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
-          };
-        })
-      );
-
-      setRecords(recordsData);
-    } catch (err) {
-      console.error('Error fetching records:', err);
-      setError('Failed to fetch records. Please try again.');
-    }
-  };
-
-  const fetchSharedRecords = async (address: string) => {
-    try {
-      const recordIds = await blockchainService.getSharedRecords(address);
-
-      const recordsData = await Promise.all(
-        recordIds.map(async (id: number) => {
-          const record = await blockchainService.getRecord(id);
-          return {
-            id: id.toString(),
-            studentName: record.studentName,
-            universityName: record.universityName,
-            type: getRecordTypeName(record.recordType),
-            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
-          };
-        })
-      );
-
-      setSharedRecords(recordsData);
-    } catch (err) {
-      console.error('Error fetching shared records:', err);
-    }
-  };
+  }, [router, fetchStudentDetails]);
 
   // Helper function to get record type names
   const getRecordTypeName = (typeId: number): string => {

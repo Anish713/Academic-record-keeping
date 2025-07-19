@@ -43,6 +43,7 @@ export default function AddRecordPage() {
         const uniName = await blockchainService.getUniversityName(address);
         setUniversityName(uniName);
         setIsUniversity(true);
+        console.log("IsUniversity: ", isUniversity);
         
         const types = [];
         for (let i = 0; i < 36; i++) { // Based on the RecordType enum in IAcademicRecords.sol
