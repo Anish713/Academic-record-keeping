@@ -6,6 +6,12 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
 import { ethers } from "ethers";
+import { getRecordTypeName } from "@/types/records";
+
+interface RecordTypeOption {
+  id: number;
+  name: string;
+}
 
 /**
  * React page component for universities to add new academic records to the blockchain.
@@ -31,9 +37,7 @@ export default function AddRecordPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [universityName, setUniversityName] = useState("");
-  const [recordTypes, setRecordTypes] = useState<
-    { id: number; name: string }[]
-  >([]);
+  const [recordTypes, setRecordTypes] = useState<RecordTypeOption[]>([]);
 
   useEffect(() => {
     const initWallet = async () => {
@@ -55,7 +59,6 @@ export default function AddRecordPage() {
 
         const types = [];
         for (let i = 0; i < 36; i++) {
-          // Based on the RecordType enum in IAcademicRecords.sol
           types.push({
             id: i,
             name: getRecordTypeName(i),
@@ -73,56 +76,11 @@ export default function AddRecordPage() {
     initWallet();
   }, [router]);
 
-  const getRecordTypeName = (typeId: number): string => {
-    const types = [
-      // Academic Records
-      "Transcript",
-      "Degree",
-      "Marksheet",
-      "Diploma",
-      "Certificate",
-      "Provisional Certificate",
-      // Identity & Personal Verification
-      "Birth Certificate",
-      "Citizenship",
-      "National ID",
-      "Passport Copy",
-      "Character Certificate",
-      // Admission & Examination Documents
-      "Entrance Results",
-      "Admit Card",
-      "Counseling Letter",
-      "Seat Allotment Letter",
-      "Migration Certificate",
-      "Transfer Certificate",
-      // Administrative & Financial Records
-      "Bills",
-      "Fee Receipt",
-      "Scholarship Letter",
-      "Loan Document",
-      "Hostel Clearance",
-      // Academic Schedules & Communications
-      "Routine",
-      "Notice",
-      "Circular",
-      "News",
-      // Miscellaneous & Supporting Documents
-      "Recommendation Letter",
-      "Internship Certificate",
-      "Experience Letter",
-      "Bonafide Certificate",
-      "No Objection Certificate",
-      // Fallback
-      "Other",
-    ];
-    return types[typeId] || "Unknown";
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (file.size > 10 * 1024 * 1024) {
-        // 10 MB limit
+        // Set File Size Limit to 10 MB
         setUploadError("File size exceeds 10MB limit.");
         setSelectedFile(null);
       } else {
@@ -182,12 +140,6 @@ export default function AddRecordPage() {
       setError("Invalid Ethereum address format for student.");
       return;
     }
-
-    //// TODO: Validation for ipfsHash
-    // if (!/^Qm[a-zA-Z0-9]{44}$/.test(ipfsHash.trim())) {
-    //   setError('Invalid IPFS hash format. It should start with "Qm..."');
-    //   return;
-    // }
 
     try {
       setSubmitting(true);

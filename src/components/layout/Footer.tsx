@@ -49,10 +49,10 @@ export default function Footer() {
               Terms & Conditions
             </button>
             <a
-              href="mailto:anish@blockchain.com"
+              href="https://shresthaanish9703.com.np"
               className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
             >
-              anish@blockchain.com
+              Contact me
             </a>
           </div>
         </div>
