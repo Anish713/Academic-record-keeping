@@ -27,6 +27,9 @@ export default function AddRecordPage() {
   const [studentAddress, setStudentAddress] = useState("");
   const [recordType, setRecordType] = useState("0");
   const [ipfsHash, setIpfsHash] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [universityName, setUniversityName] = useState("");
   const [recordTypes, setRecordTypes] = useState<
     { id: number; name: string }[]
@@ -113,6 +116,53 @@ export default function AddRecordPage() {
       "Other",
     ];
     return types[typeId] || "Unknown";
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        // 10 MB limit
+        setUploadError("File size exceeds 10MB limit.");
+        setSelectedFile(null);
+      } else {
+        setSelectedFile(file);
+        setUploadError("");
+      }
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      setUploadError("Please select a file to upload.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError("");
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const data = await response.json();
+      setIpfsHash(data.IpfsHash);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "An error occurred during upload.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -283,6 +333,49 @@ export default function AddRecordPage() {
 
             <div>
               <label
+                htmlFor="file-upload"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Upload Document
+              </label>
+              <div className="mt-1 flex items-center">
+                <input
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                  disabled={submitting || uploading}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className={`cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${
+                    submitting || uploading
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <span>
+                    {selectedFile ? selectedFile.name : "Select file"}
+                  </span>
+                </label>
+                <Button
+                  type="button"
+                  onClick={handleFileUpload}
+                  disabled={!selectedFile || uploading || submitting}
+                  className="ml-3"
+                  variant="outline"
+                >
+                  {uploading ? "Uploading..." : "Upload to IPFS"}
+                </Button>
+              </div>
+              {uploadError && (
+                <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+              )}
+            </div>
+
+            <div>
+              <label
                 htmlFor="ipfsHash"
                 className="block text-sm font-medium text-gray-700"
               >
@@ -292,16 +385,11 @@ export default function AddRecordPage() {
                 type="text"
                 id="ipfsHash"
                 value={ipfsHash}
-                onChange={(e) => setIpfsHash(e.target.value)}
-                disabled={submitting}
+                readOnly
                 required
-                placeholder="QmXyz..."
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
+                placeholder="Upload a file to generate the hash"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 focus:ring-navy-500 focus:border-navy-500"
               />
-              <p className="mt-1 text-sm text-gray-500">
-                TODO: Use IPFS services like Pinata or Infura to upload and get
-                a hash.
-              </p>
             </div>
 
             <div className="flex justify-end space-x-3">
