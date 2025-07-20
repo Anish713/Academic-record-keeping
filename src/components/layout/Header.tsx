@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { truncateAddress } from '@/lib/utils';
-import { blockchainService } from '@/services/blockchain';
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { truncateAddress } from "@/lib/utils";
+import { blockchainService } from "@/services/blockchain";
 
 /**
  * Renders the application header with role-based navigation and wallet connection status.
@@ -14,7 +14,7 @@ import { blockchainService } from '@/services/blockchain';
  */
 export default function Header() {
   const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState("");
   const [isUniversity, setIsUniversity] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -33,15 +33,24 @@ export default function Header() {
         setIsConnected(true);
         setAddress(userAddress);
 
-        const hasUniversityRole = await blockchainService.hasRole('UNIVERSITY_ROLE', userAddress);
-        const hasAdminRole = await blockchainService.hasRole('ADMIN_ROLE', userAddress);
-        const hasSuperAdminRole = await blockchainService.hasRole('SUPER_ADMIN_ROLE', userAddress);
+        const hasUniversityRole = await blockchainService.hasRole(
+          "UNIVERSITY_ROLE",
+          userAddress
+        );
+        const hasAdminRole = await blockchainService.hasRole(
+          "ADMIN_ROLE",
+          userAddress
+        );
+        const hasSuperAdminRole = await blockchainService.hasRole(
+          "SUPER_ADMIN_ROLE",
+          userAddress
+        );
 
         setIsUniversity(hasUniversityRole);
         setIsAdmin(hasAdminRole);
         setIsSuperAdmin(hasSuperAdminRole);
       } catch (error) {
-        console.error('Failed to connect wallet:', error);
+        console.error("Failed to connect wallet:", error);
       }
     };
 
@@ -50,8 +59,8 @@ export default function Header() {
 
   const isActive = (path: string) =>
     pathname === path
-      ? 'text-black font-bold border-b-2 border-blue-700 pb-1'
-      : 'text-gray-700';
+      ? "text-black font-bold border-b-2 border-blue-700 pb-1"
+      : "text-gray-700";
 
   return (
     <header className="w-full py-4 px-6 bg-white shadow-sm">
@@ -59,57 +68,79 @@ export default function Header() {
         <div className="flex items-center space-x-2">
           <button
             className="flex items-center"
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
             type="button"
           >
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
-              <Image src="/favicon.ico" alt="CertiChain Logo" width={40} height={40} className="w-full h-full object-contain" />
+            <div className="flex items-center space-x-2">
+              <div
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200"
+                style={{ background: "white" }}
+              >
+                <Image
+                  src="/favicon.ico"
+                  alt="CertiChain Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain bg-white"
+                />
+              </div>
+              <span className="text-md text-gray-600">CertiChain</span>
             </div>
           </button>
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
           <button
-            className={`${isActive('/')} hover:text-navy-700 transition-colors`}
-            onClick={() => router.push('/')}
+            className={`${isActive("/")} hover:text-navy-700 transition-colors`}
+            onClick={() => router.push("/")}
             type="button"
           >
             Home
           </button>
           <button
-            className={`${isActive('/records')} hover:text-navy-700 transition-colors`}
-            onClick={() => router.push('/records')}
+            className={`${isActive(
+              "/records"
+            )} hover:text-navy-700 transition-colors`}
+            onClick={() => router.push("/records")}
             type="button"
           >
             Records
           </button>
           <button
-            className={`${isActive('/verify')} hover:text-navy-700 transition-colors`}
-            onClick={() => router.push('/verify')}
+            className={`${isActive(
+              "/verify"
+            )} hover:text-navy-700 transition-colors`}
+            onClick={() => router.push("/verify")}
             type="button"
           >
             Verify
           </button>
           <button
-            className={`${isActive('/about')} hover:text-navy-700 transition-colors`}
-            onClick={() => router.push('/about')}
+            className={`${isActive(
+              "/about"
+            )} hover:text-navy-700 transition-colors`}
+            onClick={() => router.push("/about")}
             type="button"
           >
             About
           </button>
           {(isAdmin || isSuperAdmin) && (
             <button
-              className={`${isActive('/admin')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
-              onClick={() => router.push('/admin')}
+              className={`${isActive(
+                "/admin"
+              )} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
+              onClick={() => router.push("/admin")}
               type="button"
             >
-              {isSuperAdmin ? 'Super Admin' : 'Admin'}
+              {isSuperAdmin ? "Super Admin" : "Admin"}
             </button>
           )}
           {isUniversity && (
             <button
-              className={`${isActive('/dashboard')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
-              onClick={() => router.push('/dashboard')}
+              className={`${isActive(
+                "/dashboard"
+              )} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
+              onClick={() => router.push("/dashboard")}
               type="button"
             >
               Dashboard
@@ -117,8 +148,10 @@ export default function Header() {
           )}
           {isConnected && !isUniversity && !isAdmin && !isSuperAdmin && (
             <button
-              className={`${isActive('/student')} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
-              onClick={() => router.push('/student')}
+              className={`${isActive(
+                "/student"
+              )} hover:text-navy-600 px-3 py-2 rounded-md text-sm font-medium`}
+              onClick={() => router.push("/student")}
               type="button"
             >
               Student Dashboard
@@ -135,7 +168,7 @@ export default function Header() {
             <Button
               variant="navy"
               className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold border-2 border-yellow-500 shadow-lg"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push("/login")}
             >
               Login →
             </Button>
