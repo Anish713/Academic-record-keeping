@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
-import { pinataService } from "@/services/pinata";
+import { getGatewayUrl } from "@/lib/pinata";
 import { truncateAddress } from "@/lib/utils";
 
 /**
@@ -123,7 +123,7 @@ export default function RecordDetailPage() {
           verified: recordData.isValid,
           issuer: recordData.university,
           issuerTruncated: truncateAddress(recordData.university),
-          documentUrl: pinataService.getGatewayUrl(recordData.ipfsHash),
+          documentUrl: getGatewayUrl(recordData.ipfsHash),
           ipfsHash: recordData.ipfsHash,
         };
 

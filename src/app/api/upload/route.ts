@@ -1,28 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pinataService } from "@/services/pinata";
+import axios from "axios";
+import FormData from "form-data";
 
-export async function POST(request: NextRequest) {
+const PINATA_API_KEY = process.env.PINATA_API_KEY;
+const PINATA_API_SECRET_KEY = process.env.PINATA_API_SECRET_KEY;
+
+if (!PINATA_API_KEY || !PINATA_API_SECRET_KEY) {
+  throw new Error(
+    "Pinata API Key or Secret is not set in environment variables."
+  );
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const data = await request.formData();
+    const data = await req.formData();
     const file: File | null = data.get("file") as unknown as File;
 
     if (!file) {
+      return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      // 10 MB limit
       return NextResponse.json(
-        { success: false, message: "No file found" },
-        { status: 400 }
+        { error: "File size exceeds 10MB limit." },
+        { status: 413 }
       );
     }
 
-    const pinataResponse = await pinataService.uploadFile(file);
+    const formData = new FormData();
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    formData.append("file", buffer, file.name);
 
-    return NextResponse.json({
-      success: true,
-      ipfsHash: pinataResponse.IpfsHash,
-    });
+    const response = await axios.post(
+      "https://api.pinata.cloud/pinning/pinFileToIPFS",
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          pinata_api_key: PINATA_API_KEY,
+          pinata_secret_api_key: PINATA_API_SECRET_KEY,
+        },
+      }
+    );
+
+    return NextResponse.json({ IpfsHash: response.data.IpfsHash });
   } catch (error) {
-    console.error("Error in upload API:", error);
+    console.error("Error uploading file to Pinata:", error);
     return NextResponse.json(
-      { success: false, message: "Upload failed" },
+      { error: "Failed to upload file to Pinata." },
       { status: 500 }
     );
   }

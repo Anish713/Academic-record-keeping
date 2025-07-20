@@ -119,14 +119,24 @@ export default function AddRecordPage() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFile(e.target.files[0]);
-      setUploadError("");
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        // 10 MB limit
+        setUploadError("File size exceeds 10MB limit.");
+        setSelectedFile(null);
+      } else {
+        setSelectedFile(file);
+        setUploadError("");
+      }
     }
   };
 
   const handleFileUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      setUploadError("Please select a file to upload.");
+      return;
+    }
 
     setUploading(true);
     setUploadError("");
@@ -140,16 +150,16 @@ export default function AddRecordPage() {
         body: formData,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setIpfsHash(data.ipfsHash);
-      } else {
-        setUploadError(data.message || "Upload failed");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
       }
-    } catch (err) {
+
+      const data = await response.json();
+      setIpfsHash(data.IpfsHash);
+    } catch (err: any) {
       console.error("Upload error:", err);
-      setUploadError("An error occurred during upload.");
+      setUploadError(err.message || "An error occurred during upload.");
     } finally {
       setUploading(false);
     }

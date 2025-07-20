@@ -1,7 +1,7 @@
 "use client";
 
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 /**
  * Renders the footer section with branding, navigation links, and contact information.
@@ -19,10 +19,16 @@ export default function Footer() {
           <div className="mb-4 md:mb-0">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
-                <Image src="/favicon.ico" alt="CertiChain Logo" width={32} height={32} className="w-full h-full object-contain" />
+                <Image
+                  src="/favicon.ico"
+                  alt="CertiChain Logo"
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-sm text-gray-600">
-                Academic Record Store
+                CertiChain | Academic Record Store
               </span>
             </div>
           </div>
@@ -30,14 +36,14 @@ export default function Footer() {
           <div className="flex space-x-6 mb-4 md:mb-0">
             <button
               type="button"
-              onClick={() => router.push('/privacy-policy')}
+              onClick={() => router.push("/privacy-policy")}
               className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
             >
               Privacy Policy
             </button>
             <button
               type="button"
-              onClick={() => router.push('/terms-conditions')}
+              onClick={() => router.push("/terms-conditions")}
               className="text-sm text-gray-600 hover:text-navy-700 transition-colors"
             >
               Terms & Conditions
