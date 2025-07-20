@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
+import { pinataService } from "@/services/pinata";
 import { truncateAddress } from "@/lib/utils";
 
 /**
@@ -122,6 +123,8 @@ export default function RecordDetailPage() {
           verified: recordData.isValid,
           issuer: recordData.university,
           issuerTruncated: truncateAddress(recordData.university),
+          documentUrl: pinataService.getGatewayUrl(recordData.ipfsHash),
+          ipfsHash: recordData.ipfsHash,
         };
 
         setRecord(formattedRecord);
@@ -312,6 +315,17 @@ export default function RecordDetailPage() {
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Student Address</p>
                   <p className="font-medium">{record.studentAddress}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Document</p>
+                  <a
+                    href={record.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-blue-600 hover:underline"
+                  >
+                    View Document
+                  </a>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">
