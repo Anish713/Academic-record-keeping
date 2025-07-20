@@ -1,19 +1,9 @@
 import { ethers } from "ethers";
-import AcademicRecordsABI from "@/contracts/AcademicRecords.json";
-import StudentManagementABI from "@/contracts/StudentManagement.json";
-
-export interface Record {
-  id: number;
-  studentName: string;
-  studentId: string;
-  studentAddress: string;
-  recordType: number;
-  ipfsHash: string;
-  timestamp: number;
-  university: string;
-  isValid: boolean;
-  universityName: string;
-}
+import AcademicRecords from "../contracts/AcademicRecords.json";
+import IAcademicRecords from "../contracts/IAcademicRecords.json";
+import RoleManager from "../contracts/RoleManager.json";
+import StudentManagement from "../contracts/StudentManagement.json";
+import { Record, CustomRecordType } from "../types/records";
 
 export interface University {
   address: string;
@@ -56,13 +46,13 @@ class BlockchainService {
 
       this.contract = new ethers.Contract(
         this.contractAddress,
-        AcademicRecordsABI.abi,
+        AcademicRecords.abi,
         this.signer
       );
 
       this.studentManagementContract = new ethers.Contract(
         this.studentManagementAddress,
-        StudentManagementABI.abi,
+        StudentManagement.abi,
         this.signer
       );
 
@@ -181,18 +171,27 @@ class BlockchainService {
       studentName: record.studentName,
       studentId: record.studentId,
       studentAddress: record.studentAddress,
+      universityName: record.universityName,
       recordType: Number(record.recordType),
       ipfsHash: record.ipfsHash,
       timestamp: Number(record.timestamp),
       university: record.issuer,
       isValid: record.isVerified,
-      universityName: record.universityName,
     };
   }
 
   async getStudentRecords(studentId: string): Promise<number[]> {
     this.ensureContract();
+    if (ethers.isAddress(studentId)) {
+      return this.getStudentRecordsByAddress(studentId);
+    }
     const recordIds = await this.contract!.getStudentRecords(studentId);
+    return recordIds.map((id: bigint) => Number(id));
+  }
+
+  async getStudentRecordsByAddress(address: string): Promise<number[]> {
+    this.ensureContract();
+    const recordIds = await this.contract!.getStudentRecordsByAddress(address);
     return recordIds.map((id: bigint) => Number(id));
   }
 

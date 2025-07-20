@@ -30,6 +30,15 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         string calldata metadataHash,
         RecordType recordType
     ) external onlyRole(UNIVERSITY_ROLE) whenNotPaused returns (uint256) {
+        require(studentAddress != address(0), "Invalid student address");
+
+        string memory existingStudentId = studentManagement.addressToStudentId(
+            studentAddress
+        );
+        if (bytes(existingStudentId).length == 0) {
+            studentManagement.registerStudent(studentId, studentAddress);
+        }
+
         uint256 recordId = recordData.addRecord(
             studentId,
             studentName,
@@ -131,6 +140,58 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         string calldata studentId
     ) external view returns (uint256[] memory) {
         return recordData.studentRecords[studentId];
+    }
+
+    function getStudentRecordsByAddress(
+        address studentAddress
+    ) external view returns (uint256[] memory) {
+        string memory studentId = studentManagement.getStudentId(
+            studentAddress
+        );
+
+        uint256[] memory addressRecords = recordData.getRecordsByStudentAddress(
+            studentAddress
+        );
+
+        if (bytes(studentId).length == 0) {
+            return addressRecords;
+        }
+
+        uint256[] memory idRecords = recordData.studentRecords[studentId];
+
+        // Combine array with unique records
+        uint256[] memory combinedRecords = new uint256[](
+            addressRecords.length + idRecords.length
+        );
+        uint256 uniqueCount = 0;
+
+        for (uint256 i = 0; i < addressRecords.length; i++) {
+            combinedRecords[uniqueCount] = addressRecords[i];
+            uniqueCount++;
+        }
+
+        for (uint256 i = 0; i < idRecords.length; i++) {
+            bool isDuplicate = false;
+
+            for (uint256 j = 0; j < uniqueCount; j++) {
+                if (idRecords[i] == combinedRecords[j]) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+
+            if (!isDuplicate) {
+                combinedRecords[uniqueCount] = idRecords[i];
+                uniqueCount++;
+            }
+        }
+
+        uint256[] memory result = new uint256[](uniqueCount);
+        for (uint256 i = 0; i < uniqueCount; i++) {
+            result[i] = combinedRecords[i];
+        }
+
+        return result;
     }
 
     function getUniversityRecords()
