@@ -8,7 +8,7 @@ export interface Record {
   studentId: string;
   studentAddress: string;
   recordType: number;
-  dataHash: string;
+  ipfsHash: string;
   timestamp: number;
   university: string;
   isValid: boolean;
@@ -27,7 +27,8 @@ class BlockchainService {
   private studentManagementContract: ethers.Contract | null = null;
   private contractAddress: string =
     process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
-  private studentManagementAddress: string = process.env.NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS || "";
+  private studentManagementAddress: string =
+    process.env.NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS || "";
 
   private ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("ADMIN_ROLE"));
   private UNIVERSITY_ROLE = ethers.keccak256(
@@ -58,7 +59,7 @@ class BlockchainService {
         AcademicRecordsABI.abi,
         this.signer
       );
-      
+
       this.studentManagementContract = new ethers.Contract(
         this.studentManagementAddress,
         StudentManagementABI.abi,
@@ -181,7 +182,7 @@ class BlockchainService {
       studentId: record.studentId,
       studentAddress: record.studentAddress,
       recordType: Number(record.recordType),
-      dataHash: record.ipfsHash,
+      ipfsHash: record.ipfsHash,
       timestamp: Number(record.timestamp),
       university: record.issuer,
       isValid: record.isVerified,
@@ -246,14 +247,20 @@ class BlockchainService {
   }
 
   // Student registration
-  async registerStudent(studentId: string, studentAddress?: string): Promise<void> {
+  async registerStudent(
+    studentId: string,
+    studentAddress?: string
+  ): Promise<void> {
     if (!this.studentManagementContract) {
       throw new Error("StudentManagement contract not initialized");
     }
     // If studentAddress is provided, use it (admin registering a student)
     // Otherwise, use the current user's address (student self-registration)
-    const address = studentAddress || await this.getCurrentAddress();
-    const tx = await this.studentManagementContract.registerStudent(studentId, address);
+    const address = studentAddress || (await this.getCurrentAddress());
+    const tx = await this.studentManagementContract.registerStudent(
+      studentId,
+      address
+    );
     await tx.wait();
   }
 
