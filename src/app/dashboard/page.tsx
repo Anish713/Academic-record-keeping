@@ -68,17 +68,19 @@ export default function DashboardPage() {
         const recordsData = await Promise.all(
           recordIds.map(async (id: number) => {
             const record = await blockchainService.getRecord(id);
+            const types = [
+              'Transcript', 'Degree', 'Marksheet', 'Diploma', 'Certificate', 'Provisional Certificate',
+              'Birth Certificate', 'Citizenship', 'National ID', 'Passport Copy', 'Character Certificate',
+              'Entrance Results', 'Admit Card', 'Counseling Letter', 'Seat Allotment Letter', 'Migration Certificate', 'Transfer Certificate',
+              'Bills', 'Fee Receipt', 'Scholarship Letter', 'Loan Document', 'Hostel Clearance',
+              'Routine', 'Notice', 'Circular', 'News',
+              'Recommendation Letter', 'Internship Certificate', 'Experience Letter', 'Bonafide Certificate', 'No Objection Certificate',
+              'Other'
+            ];
             return {
               id: id.toString(),
               studentName: record.studentName,
-              type:
-                record.recordType === 0
-                  ? 'Transcript'
-                  : record.recordType === 1
-                  ? 'Certificate'
-                  : record.recordType === 2
-                  ? 'Degree'
-                  : 'Other',
+              type: types[record.recordType] ?? 'Other',
               dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
             };
           })
