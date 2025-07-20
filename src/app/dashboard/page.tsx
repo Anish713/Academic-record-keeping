@@ -77,6 +77,18 @@ export default function DashboardPage() {
               'Recommendation Letter', 'Internship Certificate', 'Experience Letter', 'Bonafide Certificate', 'No Objection Certificate',
               'Other'
             ];
+
+            const recordsData = await Promise.all(
+              recordIds.map(async (id: number) => {
+                const record = await blockchainService.getRecord(id);
+                return {
+                  id: id.toString(),
+                  studentName: record.studentName,
+                  type: types[record.recordType] ?? 'Other',
+                  dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+                };
+              })
+            );
             return {
               id: id.toString(),
               studentName: record.studentName,
