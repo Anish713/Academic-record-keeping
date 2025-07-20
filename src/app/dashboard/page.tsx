@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/Button';
-import { truncateAddress } from '@/lib/utils';
-import { blockchainService } from '@/services/blockchain';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import MainLayout from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/Button";
+import { truncateAddress } from "@/lib/utils";
+import { blockchainService } from "@/services/blockchain";
 
 /**
  * Displays the university dashboard for authenticated university users, showing summary statistics and a table of recent academic records.
@@ -13,11 +13,11 @@ import { blockchainService } from '@/services/blockchain';
  * Redirects to the login page if the user is not authenticated or lacks the required university role. Fetches and displays the university name, total records, transcripts, certificates, and a list of recent records with options to view or add new records. Handles loading and error states during data retrieval.
  */
 export default function DashboardPage() {
-  const [connectedAddress, setConnectedAddress] = useState('');
-  const [universityName, setUniversityName] = useState('Your University');
+  const [connectedAddress, setConnectedAddress] = useState("");
+  const [universityName, setUniversityName] = useState("Your University");
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -25,16 +25,19 @@ export default function DashboardPage() {
       try {
         const success = await blockchainService.init();
         if (!success) {
-          router.push('/login');
+          router.push("/login");
           return;
         }
 
         const address = await blockchainService.getCurrentAddress();
         setConnectedAddress(address);
 
-        const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
+        const isUniversity = await blockchainService.hasRole(
+          "UNIVERSITY_ROLE",
+          address
+        );
         if (!isUniversity) {
-          router.push('/records');
+          router.push("/records");
           return;
         }
 
@@ -47,8 +50,8 @@ export default function DashboardPage() {
           }
         }
       } catch (err) {
-        console.error('Error initializing wallet:', err);
-        router.push('/login');
+        console.error("Error initializing wallet:", err);
+        router.push("/login");
       }
     };
 
@@ -60,7 +63,42 @@ export default function DashboardPage() {
       if (!connectedAddress) return;
 
       setLoading(true);
-      setError('');
+      setError("");
+
+      const types = [
+        "Transcript",
+        "Degree",
+        "Marksheet",
+        "Diploma",
+        "Certificate",
+        "Provisional Certificate",
+        "Birth Certificate",
+        "Citizenship",
+        "National ID",
+        "Passport Copy",
+        "Character Certificate",
+        "Entrance Results",
+        "Admit Card",
+        "Counseling Letter",
+        "Seat Allotment Letter",
+        "Migration Certificate",
+        "Transfer Certificate",
+        "Bills",
+        "Fee Receipt",
+        "Scholarship Letter",
+        "Loan Document",
+        "Hostel Clearance",
+        "Routine",
+        "Notice",
+        "Circular",
+        "News",
+        "Recommendation Letter",
+        "Internship Certificate",
+        "Experience Letter",
+        "Bonafide Certificate",
+        "No Objection Certificate",
+        "Other",
+      ];
 
       try {
         const recordIds = await blockchainService.getUniversityRecords();
@@ -68,40 +106,21 @@ export default function DashboardPage() {
         const recordsData = await Promise.all(
           recordIds.map(async (id: number) => {
             const record = await blockchainService.getRecord(id);
-            const types = [
-              'Transcript', 'Degree', 'Marksheet', 'Diploma', 'Certificate', 'Provisional Certificate',
-              'Birth Certificate', 'Citizenship', 'National ID', 'Passport Copy', 'Character Certificate',
-              'Entrance Results', 'Admit Card', 'Counseling Letter', 'Seat Allotment Letter', 'Migration Certificate', 'Transfer Certificate',
-              'Bills', 'Fee Receipt', 'Scholarship Letter', 'Loan Document', 'Hostel Clearance',
-              'Routine', 'Notice', 'Circular', 'News',
-              'Recommendation Letter', 'Internship Certificate', 'Experience Letter', 'Bonafide Certificate', 'No Objection Certificate',
-              'Other'
-            ];
-
-            const recordsData = await Promise.all(
-              recordIds.map(async (id: number) => {
-                const record = await blockchainService.getRecord(id);
-                return {
-                  id: id.toString(),
-                  studentName: record.studentName,
-                  type: types[record.recordType] ?? 'Other',
-                  dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
-                };
-              })
-            );
             return {
               id: id.toString(),
               studentName: record.studentName,
-              type: types[record.recordType] ?? 'Other',
-              dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+              type: types[record.recordType] ?? "Other",
+              dateIssued: new Date(
+                record.timestamp * 1000
+              ).toLocaleDateString(),
             };
           })
         );
 
         setRecords(recordsData);
       } catch (err) {
-        console.error('Error fetching records:', err);
-        setError('Failed to fetch records. Please try again.');
+        console.error("Error fetching records:", err);
+        setError("Failed to fetch records. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -127,7 +146,7 @@ export default function DashboardPage() {
               <div>
                 <Button
                   variant="outline"
-                  onClick={() => router.push('/records/add')}
+                  onClick={() => router.push("/records/add")}
                 >
                   Add New Record
                 </Button>
@@ -138,25 +157,33 @@ export default function DashboardPage() {
           <div className="px-6 py-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">Total Records</dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">{records.length}</dd>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">Transcripts</dt>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Records
+                </dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {records.filter((r) => r.type === 'Transcript').length}
+                  {records.length}
                 </dd>
               </div>
             </div>
 
             <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">Certificates</dt>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Transcripts
+                </dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {records.filter((r) => r.type === 'Certificate').length}
+                  {records.filter((r) => r.type === "Transcript").length}
+                </dd>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Certificates
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {records.filter((r) => r.type === "Certificate").length}
                 </dd>
               </div>
             </div>
@@ -165,18 +192,30 @@ export default function DashboardPage() {
 
         <div className="bg-white shadow overflow-hidden rounded-lg">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Records</h3>
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Recent Records
+            </h3>
           </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Issued</th>
-                  <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date Issued
+                  </th>
+                  <th className="relative px-6 py-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -203,17 +242,15 @@ export default function DashboardPage() {
                       >
                         View
                       </button>
-                      <button className="text-red-600 hover:text-red-900">Delete</button>
+                      <button className="text-red-600 hover:text-red-900">
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {error && (
-              <div className="p-4 text-sm text-red-600">
-                {error}
-              </div>
-            )}
+            {error && <div className="p-4 text-sm text-red-600">{error}</div>}
           </div>
         </div>
       </div>
