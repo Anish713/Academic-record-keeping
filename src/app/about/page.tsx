@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import MainLayout from '@/components/layout/MainLayout';
-import About from './About';
+import MainLayout from "@/components/layout/MainLayout";
+import About from "./About";
 
 /**
  * Renders the About page with the main layout and about content.

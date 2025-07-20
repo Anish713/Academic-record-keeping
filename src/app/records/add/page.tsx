@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/Button';
-import { blockchainService } from '@/services/blockchain';
-import { ethers } from 'ethers';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import MainLayout from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/Button";
+import { blockchainService } from "@/services/blockchain";
+import { ethers } from "ethers";
 
 /**
  * React page component for universities to add new academic records to the blockchain.
@@ -19,43 +19,49 @@ export default function AddRecordPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isUniversity, setIsUniversity] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Form state
-  const [studentName, setStudentName] = useState('');
-  const [studentId, setStudentId] = useState('');
-  const [studentAddress, setStudentAddress] = useState('');
-  const [recordType, setRecordType] = useState('0');
-  const [ipfsHash, setIpfsHash] = useState('');
-  const [universityName, setUniversityName] = useState('');
-  const [recordTypes, setRecordTypes] = useState<{id: number, name: string}[]>([]);
+  const [studentName, setStudentName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [studentAddress, setStudentAddress] = useState("");
+  const [recordType, setRecordType] = useState("0");
+  const [ipfsHash, setIpfsHash] = useState("");
+  const [universityName, setUniversityName] = useState("");
+  const [recordTypes, setRecordTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
 
   useEffect(() => {
     const initWallet = async () => {
       try {
         const success = await blockchainService.init();
-        if (!success) return router.push('/login');
+        if (!success) return router.push("/login");
 
         const address = await blockchainService.getCurrentAddress();
-        const hasRole = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
-        if (!hasRole) return router.push('/records');
+        const hasRole = await blockchainService.hasRole(
+          "UNIVERSITY_ROLE",
+          address
+        );
+        if (!hasRole) return router.push("/records");
 
         const uniName = await blockchainService.getUniversityName(address);
         setUniversityName(uniName);
         setIsUniversity(true);
         console.log("IsUniversity: ", isUniversity);
-        
+
         const types = [];
-        for (let i = 0; i < 36; i++) { // Based on the RecordType enum in IAcademicRecords.sol
+        for (let i = 0; i < 36; i++) {
+          // Based on the RecordType enum in IAcademicRecords.sol
           types.push({
             id: i,
-            name: getRecordTypeName(i)
+            name: getRecordTypeName(i),
           });
         }
         setRecordTypes(types);
       } catch (err: any) {
-        console.error('Initialization error:', err);
-        setError('Failed to connect wallet or fetch university info.');
+        console.error("Initialization error:", err);
+        setError("Failed to connect wallet or fetch university info.");
       } finally {
         setLoading(false);
       }
@@ -63,37 +69,67 @@ export default function AddRecordPage() {
 
     initWallet();
   }, [router]);
-  
+
   const getRecordTypeName = (typeId: number): string => {
     const types = [
       // Academic Records
-      'Transcript', 'Degree', 'Marksheet', 'Diploma', 'Certificate', 'Provisional Certificate',
+      "Transcript",
+      "Degree",
+      "Marksheet",
+      "Diploma",
+      "Certificate",
+      "Provisional Certificate",
       // Identity & Personal Verification
-      'Birth Certificate', 'Citizenship', 'National ID', 'Passport Copy', 'Character Certificate',
+      "Birth Certificate",
+      "Citizenship",
+      "National ID",
+      "Passport Copy",
+      "Character Certificate",
       // Admission & Examination Documents
-      'Entrance Results', 'Admit Card', 'Counseling Letter', 'Seat Allotment Letter', 'Migration Certificate', 'Transfer Certificate',
+      "Entrance Results",
+      "Admit Card",
+      "Counseling Letter",
+      "Seat Allotment Letter",
+      "Migration Certificate",
+      "Transfer Certificate",
       // Administrative & Financial Records
-      'Bills', 'Fee Receipt', 'Scholarship Letter', 'Loan Document', 'Hostel Clearance',
+      "Bills",
+      "Fee Receipt",
+      "Scholarship Letter",
+      "Loan Document",
+      "Hostel Clearance",
       // Academic Schedules & Communications
-      'Routine', 'Notice', 'Circular', 'News',
+      "Routine",
+      "Notice",
+      "Circular",
+      "News",
       // Miscellaneous & Supporting Documents
-      'Recommendation Letter', 'Internship Certificate', 'Experience Letter', 'Bonafide Certificate', 'No Objection Certificate',
+      "Recommendation Letter",
+      "Internship Certificate",
+      "Experience Letter",
+      "Bonafide Certificate",
+      "No Objection Certificate",
       // Fallback
-      'Other'
+      "Other",
     ];
-    return types[typeId] || 'Unknown';
+    return types[typeId] || "Unknown";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentName.trim() || !studentId.trim() || !studentAddress.trim() || !ipfsHash.trim()) {
-      setError('Please fill in all required fields.');
+    if (
+      !studentName.trim() ||
+      !studentId.trim() ||
+      !studentAddress.trim() ||
+      !ipfsHash.trim()
+    ) {
+      setError("Please fill in all required fields.");
       return;
     }
 
     if (!ethers.isAddress(studentAddress.trim())) {
-      setError('Invalid Ethereum address format for student.');
+      setError("Invalid Ethereum address format for student.");
       return;
     }
 
@@ -105,9 +141,11 @@ export default function AddRecordPage() {
 
     try {
       setSubmitting(true);
-      setError('');
+      setError("");
 
-      const metadataHash = ethers.keccak256(ethers.toUtf8Bytes(ipfsHash.trim()));
+      const metadataHash = ethers.keccak256(
+        ethers.toUtf8Bytes(ipfsHash.trim())
+      );
 
       await blockchainService.addRecord(
         studentId.trim(),
@@ -119,10 +157,10 @@ export default function AddRecordPage() {
         parseInt(recordType, 10)
       );
 
-      router.push('/dashboard?success=true');
+      router.push("/dashboard?success=true");
     } catch (err: any) {
-      console.error('Add record failed:', err);
-      setError('Failed to add record. Please try again or contact support.');
+      console.error("Add record failed:", err);
+      setError("Failed to add record. Please try again or contact support.");
     } finally {
       setSubmitting(false);
     }
@@ -142,22 +180,31 @@ export default function AddRecordPage() {
     <MainLayout>
       <div className="max-w-4xl text-black mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-teal-500 mb-4">Add New Academic Record</h1>
+          <h1 className="text-3xl font-bold text-teal-500 mb-4">
+            Add New Academic Record
+          </h1>
           <p className="text-lg text-white max-w-2xl mx-auto">
-            You are submitting a record on behalf of: <strong>{universityName}</strong>
+            You are submitting a record on behalf of:{" "}
+            <strong>{universityName}</strong>
           </p>
         </div>
 
         <div className="bg-white shadow-md rounded-lg p-6 mb-10">
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6" role="alert">
+            <div
+              className="bg-red-50 border-l-4 border-red-400 p-4 mb-6"
+              role="alert"
+            >
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="studentName" className="block text-sm font-medium text-black">
+              <label
+                htmlFor="studentName"
+                className="block text-sm font-medium text-black"
+              >
                 Student Name *
               </label>
               <input
@@ -172,7 +219,10 @@ export default function AddRecordPage() {
             </div>
 
             <div>
-              <label htmlFor="studentId" className="block text-sm font-medium text-black">
+              <label
+                htmlFor="studentId"
+                className="block text-sm font-medium text-black"
+              >
                 Student ID *
               </label>
               <input
@@ -185,9 +235,12 @@ export default function AddRecordPage() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
               />
             </div>
-            
+
             <div>
-              <label htmlFor="studentAddress" className="block text-sm font-medium text-black">
+              <label
+                htmlFor="studentAddress"
+                className="block text-sm font-medium text-black"
+              >
                 Student Ethereum Address *
               </label>
               <input
@@ -206,7 +259,10 @@ export default function AddRecordPage() {
             </div>
 
             <div>
-              <label htmlFor="recordType" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="recordType"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Record Type *
               </label>
               <select
@@ -226,7 +282,10 @@ export default function AddRecordPage() {
             </div>
 
             <div>
-              <label htmlFor="ipfsHash" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="ipfsHash"
+                className="block text-sm font-medium text-gray-700"
+              >
                 IPFS Hash (Document) *
               </label>
               <input
@@ -240,7 +299,8 @@ export default function AddRecordPage() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-navy-500 focus:border-navy-500"
               />
               <p className="mt-1 text-sm text-gray-500">
-                TODO: Use IPFS services like Pinata or Infura to upload and get a hash.
+                TODO: Use IPFS services like Pinata or Infura to upload and get
+                a hash.
               </p>
             </div>
 
@@ -248,13 +308,13 @@ export default function AddRecordPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push("/dashboard")}
                 disabled={submitting}
               >
                 Cancel
               </Button>
               <Button type="submit" variant="outline" disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Add Record'}
+                {submitting ? "Submitting..." : "Add Record"}
               </Button>
             </div>
           </form>
