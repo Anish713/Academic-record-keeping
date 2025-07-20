@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/Button';
-import { blockchainService } from '@/services/blockchain';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import MainLayout from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/Button";
+import { blockchainService } from "@/services/blockchain";
 
 /**
  * Renders the login page, allowing users to connect an Ethereum wallet for role-based access or verify a record by ID.
@@ -16,38 +16,43 @@ import { blockchainService } from '@/services/blockchain';
 export default function LoginPage() {
   const router = useRouter();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const connectWallet = async () => {
     setIsConnecting(true);
-    setError('');
+    setError("");
 
     try {
       const success = await blockchainService.init();
       if (!success) {
-        throw new Error('Failed to initialize blockchain service');
+        throw new Error("Failed to initialize blockchain service");
       }
 
       const address = await blockchainService.getCurrentAddress();
 
-      const isAdmin = await blockchainService.hasRole('ADMIN_ROLE', address);
-      const isUniversity = await blockchainService.hasRole('UNIVERSITY_ROLE', address);
+      const isAdmin = await blockchainService.hasRole("ADMIN_ROLE", address);
+      const isUniversity = await blockchainService.hasRole(
+        "UNIVERSITY_ROLE",
+        address
+      );
 
       if (isAdmin) {
-        router.push('/admin');
+        router.push("/admin");
       } else if (isUniversity) {
-        router.push('/dashboard');
+        router.push("/dashboard");
       } else {
-        setError('Your wallet is not associated with a valid role.');
+        setError("Your wallet is not associated with a valid role.");
       }
     } catch (err: any) {
-      console.error('Error connecting wallet:', err.message || err);
-      if (err.message?.includes('MetaMask is not installed')) {
-        setError('MetaMask is not installed. Please install MetaMask to continue.');
-      } else if (err.message?.includes('User rejected')) {
-        setError('You denied wallet connection. Please try again.');
+      console.error("Error connecting wallet:", err.message || err);
+      if (err.message?.includes("MetaMask is not installed")) {
+        setError(
+          "MetaMask is not installed. Please install MetaMask to continue."
+        );
+      } else if (err.message?.includes("User rejected")) {
+        setError("You denied wallet connection. Please try again.");
       } else {
-        setError('Failed to connect wallet. Please try again.');
+        setError("Failed to connect wallet. Please try again.");
       }
     } finally {
       setIsConnecting(false);
@@ -60,16 +65,20 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-4">Login</h1>
           <p className="text-white">
-            Connect your wallet to access your academic records or university dashboard.
+            Connect your wallet to access your academic records or university
+            dashboard.
           </p>
         </div>
 
         <div className="bg-white shadow-md rounded-lg p-8">
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-medium text-gray-900 mb-4">Connect Wallet</h2>
+              <h2 className="text-xl font-medium text-gray-900 mb-4">
+                Connect Wallet
+              </h2>
               <p className="text-sm text-gray-600 mb-6">
-                Connect your Ethereum wallet to securely access the platform. We support MetaMask and other Web3 wallets.
+                Connect your Ethereum wallet to securely access the platform. We
+                support MetaMask and other Web3 wallets.
               </p>
 
               <Button
@@ -102,7 +111,7 @@ export default function LoginPage() {
                     />
                   </svg>
                 ) : null}
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
               </Button>
 
               {error && (
@@ -113,18 +122,21 @@ export default function LoginPage() {
             </div>
 
             <div className="pt-6 border-t border-gray-200">
-              <h2 className="text-xl font-medium text-gray-900 mb-4">Access with ID</h2>
+              <h2 className="text-xl font-medium text-gray-900 mb-4">
+                Access with ID
+              </h2>
               <p className="text-sm text-gray-600 mb-6">
-                If you have a record ID, you can verify it without connecting a wallet.
+                If you have a record ID, you can verify it without connecting a
+                wallet.
               </p>
 
-                <Button
+              <Button
                 variant="outline"
                 className="w-full py-3"
-                onClick={() => router.push('/verify')}
-                >
+                onClick={() => router.push("/verify")}
+              >
                 Verify Record
-                </Button>
+              </Button>
             </div>
           </div>
         </div>
