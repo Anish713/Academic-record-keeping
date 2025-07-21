@@ -6,6 +6,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { truncateAddress } from "@/lib/utils";
 import { blockchainService } from "@/services/blockchain";
+import { RecordItem, getRecordTypeName } from "@/types/records";
 
 /**
  * Displays the university dashboard for authenticated university users, showing summary statistics and a table of recent academic records.
@@ -15,7 +16,7 @@ import { blockchainService } from "@/services/blockchain";
 export default function DashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState("");
   const [universityName, setUniversityName] = useState("Your University");
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<RecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -65,41 +66,6 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const types = [
-        "Transcript",
-        "Degree",
-        "Marksheet",
-        "Diploma",
-        "Certificate",
-        "Provisional Certificate",
-        "Birth Certificate",
-        "Citizenship",
-        "National ID",
-        "Passport Copy",
-        "Character Certificate",
-        "Entrance Results",
-        "Admit Card",
-        "Counseling Letter",
-        "Seat Allotment Letter",
-        "Migration Certificate",
-        "Transfer Certificate",
-        "Bills",
-        "Fee Receipt",
-        "Scholarship Letter",
-        "Loan Document",
-        "Hostel Clearance",
-        "Routine",
-        "Notice",
-        "Circular",
-        "News",
-        "Recommendation Letter",
-        "Internship Certificate",
-        "Experience Letter",
-        "Bonafide Certificate",
-        "No Objection Certificate",
-        "Other",
-      ];
-
       try {
         const recordIds = await blockchainService.getUniversityRecords();
 
@@ -109,7 +75,7 @@ export default function DashboardPage() {
             return {
               id: id.toString(),
               studentName: record.studentName,
-              type: types[record.recordType] ?? "Other",
+              type: getRecordTypeName(record.recordType),
               dateIssued: new Date(
                 record.timestamp * 1000
               ).toLocaleDateString(),

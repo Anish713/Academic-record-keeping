@@ -71,7 +71,6 @@ library RecordStorage {
             }
         }
 
-        // Create result array with correct size
         deletedRecords = new uint256[](deleteCount);
 
         // Delete records and update mappings
@@ -148,5 +147,29 @@ library RecordStorage {
         self.universityCustomTypes[creator].push(typeId);
 
         return typeId;
+    }
+
+    function getRecordsByStudentAddress(
+        RecordData storage self,
+        address studentAddress
+    ) external view returns (uint256[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i <= self.recordCounter; i++) {
+            if (self.records[i].studentAddress == studentAddress) {
+                count++;
+            }
+        }
+
+        uint256[] memory result = new uint256[](count);
+        uint256 index = 0;
+
+        for (uint256 i = 1; i <= self.recordCounter; i++) {
+            if (self.records[i].studentAddress == studentAddress) {
+                result[index] = i;
+                index++;
+            }
+        }
+
+        return result;
     }
 }

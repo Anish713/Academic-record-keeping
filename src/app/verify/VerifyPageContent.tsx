@@ -6,6 +6,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
 import { truncateAddress } from "@/lib/utils";
+import { getRecordTypeName } from "@/types/records";
 
 /**
  * React component for verifying academic records on the blockchain.
@@ -64,14 +65,7 @@ export default function VerifyPageContent() {
           id,
           studentName: record.studentName,
           universityName,
-          recordType:
-            record.recordType === 0
-              ? "Transcript"
-              : record.recordType === 1
-              ? "Certificate"
-              : record.recordType === 2
-              ? "Degree"
-              : "Other",
+          recordType: getRecordTypeName(record.recordType),
           issueDate: new Date(record.timestamp * 1000).toLocaleDateString(),
           verified: true,
           issuer: truncateAddress(record.university),
