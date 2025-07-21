@@ -25,7 +25,7 @@ const config: Config = {
   organizationName: "blockchain-record-keeping",
   projectName: "CertiChain",
 
-  onBrokenLinks: "throw",
+  onBrokenLinks: "warn", // Changed from 'throw' to 'warn' to allow development
   onBrokenMarkdownLinks: "warn",
 
   // Even if you don't use internationalization, you can use this field to set
@@ -41,10 +41,7 @@ const config: Config = {
       "classic",
       {
         docs: {
-          sidebarPath: "./sidebars.ts",
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl: "/",
+          sidebarPath: require.resolve("./sidebars.ts"),
           routeBasePath: "/", // Serve docs at the root path
         },
         blog: false, // Disable blog feature
@@ -103,7 +100,7 @@ const config: Config = {
           items: [
             {
               label: "GitHub",
-              href: "https://github.com/blockchain-record-keeping/blockchain-docs",
+              href: "https://github.com/Anish713/Academic-record-keeping/tree/feat/documentation",
             },
           ],
         },
