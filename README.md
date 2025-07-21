@@ -4,6 +4,10 @@
 
 CertiChain is a cutting-edge decentralized application (dApp) designed to revolutionize academic record management. By leveraging blockchain technology, it provides a secure, transparent, and immutable platform for universities to issue and manage academic records, and for students to access and share their credentials. This system eliminates the risks of tampering and fraud associated with traditional paper-based or centralized digital systems.
 
+## Complete Documentation
+
+[📚 CertiChain Documentation](https://academic-record-keeping-docs.vercel.app/)
+
 ## 🚀 Features
 
 - **Immutable Records**: All academic records are stored on the Ethereum blockchain, ensuring tamper-proof and permanent preservation.
@@ -19,30 +23,32 @@ CertiChain follows a full-stack dApp architecture:
 
 1. **Smart Contracts (Blockchain Layer)**:
 
-   * **AcademicRecords.sol**: The core contract for managing academic records. It handles adding, retrieving, sharing, and unsharing records.
-   * **RoleManager.sol**: Manages different user roles (Super Admin, Admin, University) and their permissions using OpenZeppelin's `AccessControl`.
-   * **RecordStorage.sol**: A library contract responsible for the storage and manipulation of `Record` and `CustomRecordType` data structures.
-   * **StudentManagement.sol**: Manages the mapping between student IDs and their blockchain addresses, facilitating student registration and lookup.
+   - **AcademicRecords.sol**: The core contract for managing academic records. It handles adding, retrieving, sharing, and unsharing records.
+   - **RoleManager.sol**: Manages different user roles (Super Admin, Admin, University) and their permissions using OpenZeppelin's `AccessControl`.
+   - **RecordStorage.sol**: A library contract responsible for the storage and manipulation of `Record` and `CustomRecordType` data structures.
+   - **StudentManagement.sol**: Manages the mapping between student IDs and their blockchain addresses, facilitating student registration and lookup.
+
 2. **Frontend (Application Layer)**:
 
-   * Built with Next.js, React, and TailwindCSS for a modern, responsive user interface.
-   * Interacts with the blockchain via `ethers.js` and the `BlockchainService`.
-   * Handles file uploads to IPFS via a dedicated API route (`/api/upload`).
-   * Provides distinct dashboards and functionalities for different user roles.
+   - Built with Next.js, React, and TailwindCSS for a modern, responsive user interface.
+   - Interacts with the blockchain via `ethers.js` and the `BlockchainService`.
+   - Handles file uploads to IPFS via a dedicated API route (`/api/upload`).
+   - Provides distinct dashboards and functionalities for different user roles.
+
 3. **IPFS Integration (Storage Layer)**:
 
-   * Uses Pinata as an IPFS pinning service to ensure reliable storage and retrieval of academic documents.
-   * `src/lib/pinata.ts` provides client-side utility for constructing IPFS gateway URLs.
-   * `src/app/api/upload/route.ts` handles secure, server-side uploads to Pinata using environment variables for API keys.
+   - Uses Pinata as an IPFS pinning service to ensure reliable storage and retrieval of academic documents.
+   - `src/lib/pinata.ts` provides client-side utility for constructing IPFS gateway URLs.
+   - `src/app/api/upload/route.ts` handles secure, server-side uploads to Pinata using environment variables for API keys.
 
 ## 🛠️ Technology Stack
 
-* **Frontend**: Next.js, React, TailwindCSS
-* **Blockchain**: Ethereum, Solidity, Hardhat, OpenZeppelin Contracts
-* **Web3 Library**: Ethers.js
-* **IPFS Service**: Pinata
-* **HTTP Client**: Axios
-* **Environment Management**: `dotenv`
+- **Frontend**: Next.js, React, TailwindCSS
+- **Blockchain**: Ethereum, Solidity, Hardhat, OpenZeppelin Contracts
+- **Web3 Library**: Ethers.js
+- **IPFS Service**: Pinata
+- **HTTP Client**: Axios
+- **Environment Management**: `dotenv`
 
 ## ⚙️ Setup and Installation
 
@@ -50,11 +56,11 @@ Follow these steps to get CertiChain up and running on your local machine.
 
 ### Prerequisites
 
-* Node.js (v18 or higher)
-* npm or Yarn
-* Git
-* MetaMask browser extension
-* A Pinata account and API keys
+- Node.js (v18 or higher)
+- npm or Yarn
+- Git
+- MetaMask browser extension
+- A Pinata account and API keys
 
 ### 1. Clone the Repository
 
