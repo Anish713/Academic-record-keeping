@@ -1,10 +1,10 @@
 {
   "network": "sepolia",
-  "timestamp": "2025-07-20T17:10:51.170Z",
+  "timestamp": "2025-07-21T11:16:28.835Z",
   "superAdmin": "0xc389b2830680980fa24b5A78e2f20fc322D64667",
   "contracts": {
-    "RecordStorage": "0xCDa51fF90E2CF007A5B4ae8533B0ad6A165876f8",
-    "AcademicRecords": "0xDf359659E2fb4B4343E5331EcC95DD64F6716C83",
-    "StudentManagement": "0x219E53D648D22efc121fA54A3ACBd0d3B145eE0d"
+    "RecordStorage": "0xDE83DEcAa798464Abc15C35655260F49c78692Af",
+    "AcademicRecords": "0x2e7e84fB3568fFB860F40A17644cbB93b62b77a4",
+    "StudentManagement": "0x13A872a213c417Fc623D40Bac040cd876D8BECae"
   }
 }

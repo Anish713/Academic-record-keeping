@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import fs from "fs";
+import path from "path";
 
 /**
  * Deploys the Academic Records System contracts and saves deployment details.
@@ -11,7 +12,6 @@ import fs from "fs";
 async function main() {
   console.log("Deploying Academic Records System...");
 
-  // Get the deployer account
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
   console.log(
@@ -19,16 +19,13 @@ async function main() {
     (await deployer.provider.getBalance(deployer.address)).toString()
   );
 
-  // Step 1: Deploy the RecordStorage library
-  console.log("\n1. Deploying RecordStorage library...");
+  // Step 1: Deploy RecordStorage library
   const RecordStorage = await ethers.getContractFactory("RecordStorage");
   const recordStorage = await RecordStorage.deploy();
   await recordStorage.waitForDeployment();
   const recordStorageAddress = await recordStorage.getAddress();
-  console.log("RecordStorage library deployed to:", recordStorageAddress);
 
-  // Step 2: Deploy AcademicRecords contract with library linking
-  console.log("\n2. Deploying AcademicRecords contract...");
+  // Step 2: Deploy AcademicRecords
   const AcademicRecords = await ethers.getContractFactory("AcademicRecords", {
     libraries: {
       RecordStorage: recordStorageAddress,
@@ -38,72 +35,103 @@ async function main() {
   const academicRecords = await AcademicRecords.deploy();
   await academicRecords.waitForDeployment();
   const academicRecordsAddress = await academicRecords.getAddress();
-  console.log("AcademicRecords contract deployed to:", academicRecordsAddress);
 
-  // Step 3: Get the StudentManagement contract address
+  // Step 3: Get StudentManagement address
   const studentManagementAddress = await academicRecords.studentManagement();
-  console.log(
-    "StudentManagement contract deployed to:",
-    studentManagementAddress
-  );
 
-  // Step 4: Fetch Super Admin from contract
+  // Step 4: Get Super Admin
   const superAdmin = await academicRecords.SUPER_ADMIN();
-  console.log("Super Admin (on-chain):", superAdmin);
 
   // Step 5: Verify deployment
-  console.log("\n3. Verifying deployment...");
   try {
     const totalRecords = await academicRecords.getTotalRecords();
     const totalCustomTypes = await academicRecords.getTotalCustomTypes();
     console.log("Initial total records:", totalRecords.toString());
     console.log("Initial total custom types:", totalCustomTypes.toString());
-    console.log("✅ Deployment verification successful!");
   } catch (error) {
-    console.log("❌ Deployment verification failed:", error);
+    console.error("❌ Deployment verification failed:", error);
     throw error;
   }
 
-  // Step 6: Display deployment summary
+  // Step 6: Log summary
+  const network = (await deployer.provider.getNetwork()).name;
   console.log("\n📋 Deployment Summary:");
-  console.log("========================");
   console.log(`RecordStorage Library: ${recordStorageAddress}`);
   console.log(`AcademicRecords Contract: ${academicRecordsAddress}`);
   console.log(`StudentManagement Contract: ${studentManagementAddress}`);
   console.log(`Super Admin: ${superAdmin}`);
-  console.log(`Network: ${(await deployer.provider.getNetwork()).name}`);
+  console.log(`Network: ${network}`);
 
-  // Step 7: Save deployment addresses to a file
+  // Step 7: Save to file
   const deploymentInfo = {
-    network: (await deployer.provider.getNetwork()).name,
+    network,
     timestamp: new Date().toISOString(),
-    superAdmin: superAdmin,
+    superAdmin,
     contracts: {
       RecordStorage: recordStorageAddress,
       AcademicRecords: academicRecordsAddress,
       StudentManagement: studentManagementAddress,
     },
   };
-
   fs.writeFileSync(
     "deployment-info.json",
     JSON.stringify(deploymentInfo, null, 2)
   );
-  console.log("\n💾 Deployment info saved to deployment-info.json");
 
-  return {
-    recordStorage: recordStorageAddress,
-    academicRecords: academicRecordsAddress,
-    studentManagement: studentManagementAddress,
-    superAdmin: superAdmin,
-  };
+  return deploymentInfo.contracts;
 }
 
-// Handle errors and run the deployment
+/**
+ * Copies all `.json` files (excluding `.dbg.json`) from a nested directory to a flat output directory.
+ * @param {string} inputDir - Source directory path.
+ * @param {string} outputDir - Destination directory path.
+ */
+function copyJsonFiles(
+  inputDir = "/Users/anishshrestha/learning/solidity/blockchain-record-keeping/blockchain/artifacts/contracts",
+  outputDir = "/Users/anishshrestha/learning/solidity/blockchain-record-keeping/src/contracts"
+) {
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  function traverseAndCopy(inputDir: string) {
+    const files = fs.readdirSync(inputDir);
+
+    files.forEach((file) => {
+      const fullPath = path.join(inputDir, file);
+      const stat = fs.statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        traverseAndCopy(fullPath);
+      } else if (
+        stat.isFile() &&
+        file.endsWith(".json") &&
+        !file.endsWith(".dbg.json")
+      ) {
+        const destPath = path.join(outputDir, file);
+        fs.copyFileSync(fullPath, destPath);
+        console.log(`Copied: ${file}`);
+      }
+    });
+  }
+
+  traverseAndCopy(inputDir);
+}
+
 main()
   .then((addresses) => {
     console.log("\n🎉 Deployment completed successfully!");
     console.log("Contract addresses:", addresses);
+
+    console.log("\n📂 Copying ABI files...");
+    try {
+      copyJsonFiles();
+      console.log("✅ ABI files copied successfully!");
+    } catch (copyError) {
+      console.error("❌ Failed to copy ABI files:");
+      console.error(copyError);
+    }
+
     process.exit(0);
   })
   .catch((error) => {
