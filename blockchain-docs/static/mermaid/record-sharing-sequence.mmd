@@ -1,0 +1,33 @@
+sequenceDiagram
+actor Student
+participant UI as Student UI
+participant BS as Blockchain Service
+participant SC as AcademicRecords Contract
+participant SM as StudentManagement
+participant RS as RecordStorage
+
+    Student->>UI: Navigate to Records page
+    UI->>BS: getStudentRecordsByAddress(studentAddress)
+    BS->>SC: getStudentRecordsByAddress(studentAddress)
+    SC->>SM: getStudentId(studentAddress)
+    SM-->>SC: Return studentId
+    SC->>RS: getRecordsByStudentAddress(studentAddress)
+    RS-->>SC: Return address records
+    SC->>RS: Get studentRecords[studentId]
+    RS-->>SC: Return ID records
+    SC-->>BS: Return combined records
+    BS-->>UI: Display student records
+
+    Student->>UI: Select record to share
+    Student->>UI: Enter recipient address
+    UI->>BS: shareRecord(recordId, recipientAddress)
+    BS->>SC: shareRecord(recordId, recipientAddress)
+    SC->>SM: addressToStudentId(msg.sender)
+    SM-->>SC: Return studentId
+    SC->>RS: shareRecord(recordId, recipientAddress, studentId)
+    RS->>RS: recordSharedWith[recordId][recipientAddress] = true
+    RS->>RS: studentSharedRecords[studentId][recipientAddress].push(recordId)
+    SC->>SC: Emit RecordShared event
+    SC-->>BS: Return success
+    BS-->>UI: Display success notification
+    UI-->>Student: Show confirmation
