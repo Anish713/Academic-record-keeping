@@ -1,0 +1,65 @@
+flowchart TD
+Start((Start)) --> ConnectWallet[Connect Wallet]
+ConnectWallet --> CheckRole{Check Role}
+
+    CheckRole -->|Super Admin| AdminDashboard[Admin Dashboard]
+    CheckRole -->|Admin| AdminDashboard
+    CheckRole -->|University| UniversityDashboard[University Dashboard]
+    CheckRole -->|Student| StudentDashboard[Student Dashboard]
+    CheckRole -->|No Role| PublicView[Public View]
+
+    %% Super Admin & Admin Flows
+    AdminDashboard --> ManageUniversities[Manage Universities]
+    AdminDashboard --> ManageAdmins[Manage Admins]
+    AdminDashboard --> ViewSystemStats[View System Statistics]
+
+    ManageUniversities --> AddUniversity[Add University]
+    ManageUniversities --> RemoveUniversity[Remove University]
+    ManageUniversities --> UpdateUniversity[Update University Info]
+
+    ManageAdmins --> AddAdmin[Add Admin]
+    ManageAdmins --> RemoveAdmin[Remove Admin]
+
+    %% University Flows
+    UniversityDashboard --> AddRecord[Add New Record]
+    UniversityDashboard --> ViewUniRecords[View University Records]
+    UniversityDashboard --> ManageCustomTypes[Manage Custom Types]
+
+    AddRecord --> UploadDocument[Upload Document to IPFS]
+    UploadDocument --> EnterStudentDetails[Enter Student Details]
+    EnterStudentDetails --> SubmitRecord[Submit Record to Blockchain]
+
+    ManageCustomTypes --> AddCustomType[Add Custom Type]
+    ManageCustomTypes --> UpdateCustomType[Update Custom Type]
+
+    %% Student Flows
+    StudentDashboard --> ViewMyRecords[View My Records]
+    StudentDashboard --> ShareRecords[Share Records]
+
+    ViewMyRecords --> RecordDetails[View Record Details]
+    RecordDetails --> DownloadDocument[Download Document]
+
+    ShareRecords --> SelectRecord[Select Record]
+    SelectRecord --> EnterRecipient[Enter Recipient Address]
+    EnterRecipient --> ConfirmShare[Confirm Sharing]
+
+    StudentDashboard --> ManageSharing[Manage Sharing]
+    ManageSharing --> UnshareRecord[Unshare Record]
+
+    %% Public Flows
+    PublicView --> VerifyRecord[Verify Record]
+    PublicView --> RegisterStudent[Register as Student]
+
+    VerifyRecord --> EnterRecordID[Enter Record ID]
+    EnterRecordID --> DisplayVerification[Display Verification Result]
+
+    %% Styling
+    classDef start fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef dashboard fill:#b5e6ff,stroke:#1a88d8,stroke-width:2px;
+    classDef action fill:#d4ffd4,stroke:#28a745,stroke-width:1px;
+    classDef decision fill:#fff2b5,stroke:#ffc107,stroke-width:1px;
+
+    class Start start;
+    class AdminDashboard,UniversityDashboard,StudentDashboard,PublicView dashboard;
+    class ManageUniversities,ManageAdmins,AddRecord,ViewUniRecords,ManageCustomTypes,ViewMyRecords,ShareRecords,ManageSharing,VerifyRecord,RegisterStudent action;
+    class CheckRole decision;

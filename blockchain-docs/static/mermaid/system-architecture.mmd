@@ -1,0 +1,39 @@
+flowchart TB
+subgraph "Frontend"
+UI["User Interface (Next.js)"]
+API["API Routes"]
+Web3["Web3 Provider (ethers.js)"]
+end
+
+    subgraph "Backend Services"
+        IPFS["IPFS Storage (Pinata)"]
+    end
+
+    subgraph "Blockchain"
+        SC["Smart Contracts"]
+        subgraph "Contract Modules"
+            AC["AcademicRecords"]
+            RM["RoleManager"]
+            SM["StudentManagement"]
+            RS["RecordStorage"]
+        end
+    end
+
+    UI --> API
+    UI --> Web3
+    API --> IPFS
+    Web3 --> SC
+    SC --> AC
+    AC --> RM
+    AC --> SM
+    AC --> RS
+
+    classDef frontend fill:#d4f1f9,stroke:#05728f,stroke-width:2px
+    classDef backend fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
+    classDef blockchain fill:#d5e8d4,stroke:#82b366,stroke-width:2px
+    classDef contract fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+
+    class UI,API,Web3 frontend
+    class IPFS backend
+    class SC blockchain
+    class AC,RM,SM,RS contract

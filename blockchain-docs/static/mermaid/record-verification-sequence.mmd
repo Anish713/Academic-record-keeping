@@ -1,0 +1,18 @@
+sequenceDiagram
+actor User
+participant UI as Verification UI
+participant BS as Blockchain Service
+participant SC as AcademicRecords Contract
+participant RS as RecordStorage
+
+    User->>UI: Navigate to Verify page
+    User->>UI: Enter record ID
+    UI->>BS: verifyRecord(recordId)
+    BS->>SC: getRecord(recordId)
+    SC->>RS: Access record data
+    RS-->>SC: Return record data
+    SC-->>BS: Return record details
+    BS->>SC: recordAccess(recordId)
+    SC->>SC: Emit RecordAccessed event
+    BS-->>UI: Return verification result
+    UI-->>User: Display verification result
