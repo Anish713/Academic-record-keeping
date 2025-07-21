@@ -6,6 +6,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
 import { truncateAddress } from "@/lib/utils";
+import { type RecordItem, getRecordTypeName } from "@/types/records";
 
 /**
  * Displays the student dashboard, allowing students to view their academic records and records shared with them via a blockchain service.
@@ -15,36 +16,12 @@ import { truncateAddress } from "@/lib/utils";
 export default function StudentDashboardPage() {
   const [connectedAddress, setConnectedAddress] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [records, setRecords] = useState<any[]>([]);
-  const [sharedRecords, setSharedRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<RecordItem[]>([]);
+  const [sharedRecords, setSharedRecords] = useState<RecordItem[]>([]);
   const [error, setError] = useState("");
   const [isRegistered, setIsRegistered] = useState(false);
   const [fetching, setFetching] = useState(false);
   const router = useRouter();
-
-  const fetchRecords = useCallback(async (id: string) => {
-    try {
-      const recordIds = await blockchainService.getStudentRecords(id);
-
-      const recordsData = await Promise.all(
-        recordIds.map(async (id: number) => {
-          const record = await blockchainService.getRecord(id);
-          return {
-            id: id.toString(),
-            studentName: record.studentName,
-            universityName: record.universityName,
-            type: getRecordTypeName(record.recordType),
-            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
-          };
-        })
-      );
-
-      setRecords(recordsData);
-    } catch (err) {
-      console.error("Error fetching records:", err);
-      setError("Failed to fetch records. Please try again.");
-    }
-  }, []);
 
   const fetchSharedRecords = useCallback(async (address: string) => {
     try {
@@ -78,15 +55,58 @@ export default function StudentDashboardPage() {
         if (studentIdFromAddress && studentIdFromAddress.length > 0) {
           setStudentId(studentIdFromAddress);
           setIsRegistered(true);
-          await fetchRecords(studentIdFromAddress);
+        }
+
+        try {
+          const recordIds = await blockchainService.getStudentRecordsByAddress(
+            address
+          );
+
+          if (recordIds && recordIds.length > 0) {
+            const recordsData = await Promise.all(
+              recordIds.map(async (id: number) => {
+                try {
+                  const record = await blockchainService.getRecord(id);
+                  return {
+                    id: id.toString(),
+                    studentName: record.studentName,
+                    universityName: record.universityName,
+                    type: getRecordTypeName(record.recordType),
+                    dateIssued: new Date(
+                      record.timestamp * 1000
+                    ).toLocaleDateString(),
+                  };
+                } catch (err) {
+                  console.error(`Error fetching record ${id}:`, err);
+                  return null;
+                }
+              })
+            );
+
+            const validRecordsData = recordsData.filter(
+              (record) => record !== null
+            ) as RecordItem[];
+
+            setRecords(validRecordsData);
+            if (validRecordsData.length > 0) {
+              setIsRegistered(true);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching records:", err);
+        }
+
+        try {
           await fetchSharedRecords(address);
+        } catch (err) {
+          console.error("Error fetching shared records:", err);
         }
       } catch (err) {
         console.error("Error fetching student details:", err);
         setError("Failed to fetch student details. Please try again.");
       }
     },
-    [fetchRecords, fetchSharedRecords]
+    [fetchSharedRecords]
   );
 
   useEffect(() => {
@@ -101,7 +121,6 @@ export default function StudentDashboardPage() {
         const address = await blockchainService.getCurrentAddress();
         setConnectedAddress(address);
 
-        // Check if the user is a university
         const isUniversity = await blockchainService.hasRole(
           "UNIVERSITY_ROLE",
           address
@@ -111,7 +130,6 @@ export default function StudentDashboardPage() {
           return;
         }
 
-        // Check if the user is already registered as a student
         await fetchStudentDetails(address);
       } catch (err) {
         console.error("Error initializing wallet:", err);
@@ -124,52 +142,6 @@ export default function StudentDashboardPage() {
     initWallet();
   }, [router, fetchStudentDetails]);
 
-  // Helper function to get record type names
-  const getRecordTypeName = (typeId: number): string => {
-    const types = [
-      // Academic Records
-      "Transcript",
-      "Degree",
-      "Marksheet",
-      "Diploma",
-      "Certificate",
-      "Provisional Certificate",
-      // Identity & Personal Verification
-      "Birth Certificate",
-      "Citizenship",
-      "National ID",
-      "Passport Copy",
-      "Character Certificate",
-      // Admission & Examination Documents
-      "Entrance Results",
-      "Admit Card",
-      "Counseling Letter",
-      "Seat Allotment Letter",
-      "Migration Certificate",
-      "Transfer Certificate",
-      // Administrative & Financial Records
-      "Bills",
-      "Fee Receipt",
-      "Scholarship Letter",
-      "Loan Document",
-      "Hostel Clearance",
-      // Academic Schedules & Communications
-      "Routine",
-      "Notice",
-      "Circular",
-      "News",
-      // Miscellaneous & Supporting Documents
-      "Recommendation Letter",
-      "Internship Certificate",
-      "Experience Letter",
-      "Bonafide Certificate",
-      "No Objection Certificate",
-      // Fallback
-      "Other",
-    ];
-    return types[typeId] || "Unknown";
-  };
-
   const handleGetDetails = async () => {
     setFetching(true);
     setError("");
@@ -178,7 +150,7 @@ export default function StudentDashboardPage() {
       const address = await blockchainService.getCurrentAddress();
       await fetchStudentDetails(address);
 
-      if (!isRegistered) {
+      if (!isRegistered && records.length === 0) {
         setError(
           "No student record found for this address. Please contact your university administrator."
         );

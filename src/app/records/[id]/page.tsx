@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { blockchainService } from "@/services/blockchain";
 import { getGatewayUrl } from "@/lib/pinata";
 import { truncateAddress } from "@/lib/utils";
+import { getRecordTypeName } from "@/types/records";
 
 /**
  * Displays detailed information about an academic record and provides sharing controls for the record owner.
@@ -50,42 +51,6 @@ export default function RecordDetailPage() {
     init();
   }, [router]);
 
-  // TODO: Retrive from single source of truth
-  const types = [
-    "Transcript",
-    "Degree",
-    "Marksheet",
-    "Diploma",
-    "Certificate",
-    "Provisional Certificate",
-    "Birth Certificate",
-    "Citizenship",
-    "National ID",
-    "Passport Copy",
-    "Character Certificate",
-    "Entrance Results",
-    "Admit Card",
-    "Counseling Letter",
-    "Seat Allotment Letter",
-    "Migration Certificate",
-    "Transfer Certificate",
-    "Bills",
-    "Fee Receipt",
-    "Scholarship Letter",
-    "Loan Document",
-    "Hostel Clearance",
-    "Routine",
-    "Notice",
-    "Circular",
-    "News",
-    "Recommendation Letter",
-    "Internship Certificate",
-    "Experience Letter",
-    "Bonafide Certificate",
-    "No Objection Certificate",
-    "Other",
-  ];
-
   useEffect(() => {
     const fetchRecord = async () => {
       if (!initialized || !params.id) return;
@@ -118,7 +83,7 @@ export default function RecordDetailPage() {
           universityName:
             recordData.universityName ||
             (await blockchainService.getUniversityName(recordData.university)),
-          recordType: types[recordData.recordType] ?? "Other",
+          recordType: getRecordTypeName(recordData.recordType),
           issueDate: new Date(recordData.timestamp * 1000).toLocaleDateString(),
           verified: recordData.isValid,
           issuer: recordData.university,
@@ -393,7 +358,11 @@ export default function RecordDetailPage() {
                       className="flex-grow px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-navy-700 focus:border-navy-700 text-gray-900"
                       required
                     />
-                    <Button type="submit" variant="navy" disabled={isSharing}>
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      disabled={isSharing}
+                    >
                       {isSharing ? "Sharing..." : "Share Record"}
                     </Button>
                   </div>

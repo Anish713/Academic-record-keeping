@@ -7,7 +7,7 @@ CertiChain is a cutting-edge decentralized application (dApp) designed to revolu
 ## 🚀 Features
 
 - **Immutable Records**: All academic records are stored on the Ethereum blockchain, ensuring tamper-proof and permanent preservation.
-- **Secure Access**: Students gain secure, credential-based access to their academic records. [Feature in progress]
+- **Secure Access**: Students gain secure, credential-based access to their academic records.
 - **Efficient Verification**: Authorized parties can easily and reliably verify academic records, streamlining processes for employers, other educational institutions, and more. [Feature in progress]
 - **University Management**: Universities can seamlessly upload, manage, and update student records.
 - **Role-Based Access Control (RBAC)**: A robust permission system differentiates between Super Admins, Admins, Universities, and Students, ensuring secure and appropriate access to functionalities.
