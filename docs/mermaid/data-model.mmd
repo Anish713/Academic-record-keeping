@@ -1,0 +1,50 @@
+erDiagram
+RECORD {
+uint256 id PK
+string studentId
+string studentName
+address studentAddress
+string universityName
+string ipfsHash
+string metadataHash
+uint256 recordType
+uint256 timestamp
+bool isVerified
+address issuer
+}
+
+    CUSTOM_RECORD_TYPE {
+        uint256 id PK
+        string name
+        string description
+        address creator
+        uint256 timestamp
+        bool isActive
+    }
+
+    STUDENT {
+        string studentId PK
+        address studentAddress
+        bool exists
+    }
+
+    UNIVERSITY {
+        address universityAddress PK
+        string name
+    }
+
+    ADMIN {
+        address adminAddress PK
+    }
+
+    RECORD_SHARING {
+        uint256 recordId PK
+        address sharedWith PK
+        bool hasAccess
+    }
+
+    STUDENT ||--o{ RECORD : "owns"
+    UNIVERSITY ||--o{ RECORD : "issues"
+    UNIVERSITY ||--o{ CUSTOM_RECORD_TYPE : "creates"
+    RECORD ||--o{ RECORD_SHARING : "is shared via"
+    STUDENT ||--o{ RECORD_SHARING : "shares"

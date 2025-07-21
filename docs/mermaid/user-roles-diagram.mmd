@@ -1,0 +1,23 @@
+flowchart TD
+SA[Super Admin] --> Admin
+Admin --> University
+
+    SA --> |Can add/remove| Admin
+    Admin --> |Can add/remove| University
+    University --> |Can issue records to| Student
+    Student --> |Can share records with| Third-Party
+
+    subgraph "Access Levels"
+        SA --- SA_access[Full system control]
+        Admin --- Admin_access[University management<br>System monitoring]
+        University --- Uni_access[Record issuance<br>Custom record types]
+        Student --- Student_access[View own records<br>Share records]
+        Third-Party --- TP_access[View shared records]
+        Public --- Public_access[Verify records only]
+    end
+
+    classDef role fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+    classDef access fill:#d5e8d4,stroke:#82b366,stroke-width:1px
+
+    class SA,Admin,University,Student,Third-Party,Public role
+    class SA_access,Admin_access,Uni_access,Student_access,TP_access,Public_access access

@@ -1,0 +1,83 @@
+classDiagram
+class IAcademicRecords {
+<<interface>>
++enum RecordType
++struct Record
++struct CustomRecordType
++events
+}
+
+    class RoleManager {
+        <<abstract>>
+        +UNIVERSITY_ROLE: bytes32
+        +ADMIN_ROLE: bytes32
+        +SUPER_ADMIN_ROLE: bytes32
+        +SUPER_ADMIN: address
+        +constructor()
+        +addAdmin(address)
+        +removeAdmin(address)
+        +addUniversity(address, string)
+        +removeUniversity(address)
+        +setUniversityName(address, string)
+        +getUniversityName(address): string
+        +getAllUniversities(): address[]
+        +getAllAdmins(): address[]
+    }
+
+    class RecordStorage {
+        <<library>>
+        +struct RecordData
+        +struct CustomTypeData
+        +addRecord(...): uint256
+        +deleteStudentRecords(...)
+        +shareRecord(uint256, address, string)
+        +unshareRecord(uint256, address, string)
+        +addCustomType(...): uint256
+        +getRecordsByStudentAddress(...): uint256[]
+    }
+
+    class StudentManagement {
+        +studentExists: mapping(string => bool)
+        +studentAddresses: mapping(string => address)
+        +addressToStudentId: mapping(address => string)
+        +registerStudent(string, address)
+        +getStudentAddress(string): address
+        +getStudentId(address): string
+        +isStudentRegistered(string): bool
+    }
+
+    class AcademicRecords {
+        +recordData: RecordStorage.RecordData
+        +customTypeData: RecordStorage.CustomTypeData
+        +studentManagement: StudentManagement
+        +constructor()
+        +addRecord(...): uint256
+        +deleteStudent(string)
+        +getRecord(uint256): Record
+        +getRecordWithPermission(uint256): Record
+        +shareRecord(uint256, address)
+        +registerStudent(string)
+        +pause()
+        +unpause()
+    }
+
+    class Pausable {
+        <<OpenZeppelin>>
+        +paused(): bool
+        +_pause()
+        +_unpause()
+    }
+
+    class AccessControl {
+        <<OpenZeppelin>>
+        +hasRole(bytes32, address): bool
+        +_grantRole(bytes32, address)
+        +_revokeRole(bytes32, address)
+    }
+
+    IAcademicRecords <|.. AcademicRecords : implements
+    RoleManager <|-- AcademicRecords : inherits
+    Pausable <|-- AcademicRecords : inherits
+    AccessControl <|-- RoleManager : inherits
+    RecordStorage -- AcademicRecords : uses
+    AcademicRecords *-- StudentManagement : creates
