@@ -1,0 +1,31 @@
+sequenceDiagram
+actor University
+participant UI as University UI
+participant BS as Blockchain Service
+participant IPFS as IPFS Storage (Pinata)
+participant SC as AcademicRecords Contract
+participant SM as StudentManagement
+participant RS as RecordStorage
+
+    University->>UI: Navigate to Add Record page
+    University->>UI: Enter student details
+    University->>UI: Select record type
+    University->>UI: Upload document
+    UI->>IPFS: Upload document
+    IPFS-->>UI: Return IPFS hash
+    University->>UI: Submit record
+
+    UI->>BS: addRecord(studentId, name, address, universityName, ipfsHash, metadataHash, recordType)
+    BS->>SC: addRecord(...)
+
+    SC->>SM: Check if student exists
+    alt Student not registered
+        SC->>SM: registerStudent(studentId, address)
+        SM-->>SC: Student registered
+    end
+
+    SC->>RS: addRecord(...)
+    RS-->>SC: Return recordId
+    SC-->>BS: Return recordId
+    BS-->>UI: Return success with recordId
+    UI-->>University: Display success notification

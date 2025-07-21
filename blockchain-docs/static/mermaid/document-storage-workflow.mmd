@@ -1,0 +1,45 @@
+flowchart LR
+%% Document Upload Flow
+Document[Student Document] --> FrontendUpload[Frontend Upload Component]
+FrontendUpload --> APIRoute[API Route /api/upload]
+APIRoute --> PinataAPI[Pinata IPFS API]
+PinataAPI --> IPFSNetwork[IPFS Network]
+IPFSNetwork --> IPFSHash[IPFS Hash]
+IPFSHash --> SmartContract[Smart Contract Storage]
+
+    %% Document Retrieval Flow
+    SmartContract -.-> RetrieveHash[Retrieve IPFS Hash]
+    RetrieveHash -.-> PinataGateway[Pinata Gateway]
+    PinataGateway -.-> IPFSNetwork
+    IPFSNetwork -.-> DocumentContent[Document Content]
+    DocumentContent -.-> UserBrowser[User Browser]
+
+    %% Data vs Hash clarification
+    subgraph "On-Chain Storage"
+        SmartContract
+        RecordMetadata[Record Metadata]
+    end
+
+    subgraph "Off-Chain Storage"
+        IPFSNetwork
+        DocumentContent
+    end
+
+    %% Security considerations
+    subgraph "Access Control"
+        direction TB
+        SmartContract --> |Permission Check| AccessControl{Access Control}
+        AccessControl -->|Has Access| RetrieveHash
+        AccessControl -->|No Access| Denied[Access Denied]
+    end
+
+    %% Styling
+    classDef onchain fill:#d5e8d4,stroke:#82b366,stroke-width:2px;
+    classDef offchain fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px;
+    classDef action fill:#ffe6cc,stroke:#d79b00,stroke-width:1px;
+    classDef gateway fill:#fff2cc,stroke:#d6b656,stroke-width:1px;
+
+    class SmartContract,RecordMetadata onchain;
+    class IPFSNetwork,DocumentContent offchain;
+    class FrontendUpload,APIRoute,RetrieveHash action;
+    class PinataAPI,PinataGateway gateway;

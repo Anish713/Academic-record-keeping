@@ -1,0 +1,71 @@
+flowchart TD
+%% Record Creation
+Start((Start)) --> Registration[Student Registration]
+Registration --> Creation[Record Creation]
+Creation --> Storage[Blockchain & IPFS Storage]
+
+    %% Record Management
+    Storage --> StudentView[Student Views Record]
+    Storage --> UniversityView[University Views Record]
+
+    %% Record Sharing & Access
+    StudentView --> Share[Student Shares Record]
+    Share --> RecipientView[Recipient Views Record]
+    Share --> Unshare[Student Revokes Access]
+
+    %% Record Verification
+    StudentView --> ProvideID[Student Provides Record ID]
+    UniversityView --> ProvideID
+    ProvideID --> ThirdPartyVerifies[Third Party Verifies Record]
+
+    %% Lifecycle Phases
+    subgraph "Creation Phase"
+        Registration
+        Creation
+        Storage
+    end
+
+    subgraph "Management Phase"
+        StudentView
+        UniversityView
+    end
+
+    subgraph "Sharing Phase"
+        Share
+        RecipientView
+        Unshare
+    end
+
+    subgraph "Verification Phase"
+        ProvideID
+        ThirdPartyVerifies
+    end
+
+    %% Blockchain Interactions
+    Creation --> |"addRecord()"| Blockchain[(Blockchain)]
+    Storage --> |"IPFS Hash Storage"| Blockchain
+    StudentView --> |"getRecord()"| Blockchain
+    UniversityView --> |"getRecord()"| Blockchain
+    Share --> |"shareRecord()"| Blockchain
+    Unshare --> |"unshareRecord()"| Blockchain
+    ThirdPartyVerifies --> |"verifyRecord()"| Blockchain
+
+    %% IPFS Interactions
+    Creation --> |"Upload Document"| IPFS[(IPFS)]
+    StudentView --> |"Access Document"| IPFS
+    UniversityView --> |"Access Document"| IPFS
+    RecipientView --> |"Access Document if Shared"| IPFS
+
+    %% Styling
+    classDef start fill:#f9f,stroke:#333,stroke-width:2px
+    classDef phase fill:#d5e8d4,stroke:#82b366,stroke-width:1px
+    classDef blockchain fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    classDef storage fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
+
+    class Start start
+    class Registration,Creation,Storage phase
+    class StudentView,UniversityView phase
+    class Share,RecipientView,Unshare phase
+    class ProvideID,ThirdPartyVerifies phase
+    class Blockchain blockchain
+    class IPFS,Storage storage
