@@ -11,6 +11,8 @@
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run scripts/deploy.ts",
     "deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
+    "deploy:sepolia": "npx hardhat run scripts/deploy-sepolia.ts --network sepolia",
+    "validate:sepolia": "npx hardhat run scripts/validate-sepolia-deployment.ts --network sepolia",
     "deploy:verifier": "npx hardhat run scripts/deploy-verifier.ts",
     "deploy:verifier:local": "npx hardhat run scripts/deploy-verifier.ts --network localhost",
     "test:verifier": "npx hardhat run scripts/test-verifier.ts --network localhost",

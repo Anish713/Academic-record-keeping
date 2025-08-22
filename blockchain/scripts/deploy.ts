@@ -87,7 +87,8 @@ async function main() {
     });
     console.log("✅ Environment variables updated with contract addresses");
   } catch (error) {
-    console.warn("⚠️ Failed to update environment variables:", error.message);
+    // @ts-ignore
+      console.warn("⚠️ Failed to update environment variables:", error.message);
   }
 
   return deploymentInfo.contracts;
