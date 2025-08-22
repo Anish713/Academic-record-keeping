@@ -4,6 +4,9 @@ import IAcademicRecords from "../contracts/IAcademicRecords.json";
 import RoleManager from "../contracts/RoleManager.json";
 import StudentManagement from "../contracts/StudentManagement.json";
 import { Record, CustomRecordType } from "../types/records";
+import { SecureRecord, SharedRecordInfo, ZKAccessResult } from "../types/zkTypes";
+import { zkService } from "./zkService";
+import { getGatewayUrl } from "../lib/pinata";
 
 export interface University {
   address: string;
@@ -19,6 +22,7 @@ class BlockchainService {
     process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
   private studentManagementAddress: string =
     process.env.NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS || "";
+  private zkInitialized: boolean = false;
 
   private ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("ADMIN_ROLE"));
   private UNIVERSITY_ROLE = ethers.keccak256(
@@ -56,10 +60,27 @@ class BlockchainService {
         this.signer
       );
 
+      // Initialize ZK service
+      await this.initZKService();
+
       return true;
     } catch (error) {
       console.error("Blockchain initialization failed:", error);
       return false;
+    }
+  }
+
+  /**
+   * Initialize ZK service for secure document access
+   */
+  private async initZKService(): Promise<void> {
+    try {
+      await zkService.init();
+      this.zkInitialized = true;
+      console.log("ZK service initialized successfully");
+    } catch (error) {
+      console.warn("ZK service initialization failed, falling back to legacy access:", error);
+      this.zkInitialized = false;
     }
   }
 
@@ -351,6 +372,249 @@ class BlockchainService {
     }
     const parsedEvent = this.contract!.interface.parseLog(event);
     return Number(parsedEvent?.args.typeId);
+  }
+
+  // ===== ZK-Enhanced Methods =====
+
+  /**
+   * Get record with ZK access control - returns record with document URL only if user has access
+   */
+  async getRecordWithZKAccess(recordId: number): Promise<SecureRecord> {
+    this.ensureContract();
+
+    // Get basic record data
+    const record = await this.getRecord(recordId);
+    const currentAddress = await this.getCurrentAddress();
+
+    // Initialize secure record with basic data
+    const secureRecord: SecureRecord = {
+      ...record,
+      hasZKAccess: false,
+      accessLevel: 'none'
+    };
+
+    // Determine access level
+    if (record.studentAddress.toLowerCase() === currentAddress.toLowerCase()) {
+      secureRecord.accessLevel = 'owner';
+    } else if (await this.hasRole('UNIVERSITY_ROLE', currentAddress)) {
+      secureRecord.accessLevel = 'university';
+    } else if (await this.hasRole('ADMIN_ROLE', currentAddress) || await this.hasRole('SUPER_ADMIN_ROLE', currentAddress)) {
+      secureRecord.accessLevel = 'admin';
+    } else if (await this.isRecordSharedWith(recordId, currentAddress)) {
+      secureRecord.accessLevel = 'shared';
+    }
+
+    // Try ZK access if service is initialized
+    if (this.zkInitialized) {
+      try {
+        const hasAccess = await zkService.hasAccessToRecord(recordId);
+        if (hasAccess) {
+          const ipfsHash = await zkService.verifyDocumentAccess(recordId);
+          if (ipfsHash) {
+            secureRecord.hasZKAccess = true;
+            secureRecord.ipfsHash = ipfsHash;
+            secureRecord.documentUrl = getGatewayUrl(ipfsHash);
+          }
+        }
+      } catch (error) {
+        console.warn(`ZK access verification failed for record ${recordId}:`, error);
+        // Fall back to legacy access for owners, universities, and admins
+        if (secureRecord.accessLevel === 'owner' ||
+          secureRecord.accessLevel === 'university' ||
+          secureRecord.accessLevel === 'admin') {
+          secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
+        }
+      }
+    } else {
+      // Legacy access for backward compatibility
+      if (secureRecord.accessLevel === 'owner' ||
+        secureRecord.accessLevel === 'university' ||
+        secureRecord.accessLevel === 'admin') {
+        secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
+      }
+    }
+
+    return secureRecord;
+  }
+
+  /**
+   * Get shared records with proper ZK access validation
+   */
+  async getSharedRecordsWithAccess(userAddress?: string): Promise<SharedRecordInfo[]> {
+    this.ensureContract();
+
+    const currentAddress = userAddress || await this.getCurrentAddress();
+    const sharedRecordInfos: SharedRecordInfo[] = [];
+
+    if (this.zkInitialized) {
+      try {
+        // Get all records accessible via ZK proofs
+        const accessibleRecordIds = await zkService.getUserAccessibleRecords();
+
+        for (const recordId of accessibleRecordIds) {
+          try {
+            const record = await this.getRecord(recordId);
+
+            // Skip if user owns the record
+            if (record.studentAddress.toLowerCase() === currentAddress.toLowerCase()) {
+              continue;
+            }
+
+            // Get ZK access for the record
+            const secureRecord = await this.getRecordWithZKAccess(recordId);
+
+            if (secureRecord.hasZKAccess) {
+              sharedRecordInfos.push({
+                recordId,
+                sharedBy: record.studentAddress,
+                sharedAt: record.timestamp,
+                accessLevel: 'shared',
+                record: secureRecord
+              });
+            }
+          } catch (error) {
+            console.warn(`Failed to process shared record ${recordId}:`, error);
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to get ZK accessible records, falling back to legacy method:", error);
+        // Fall back to legacy shared records
+        return this.getLegacySharedRecords(currentAddress);
+      }
+    } else {
+      // Use legacy shared records method
+      return this.getLegacySharedRecords(currentAddress);
+    }
+
+    return sharedRecordInfos;
+  }
+
+  /**
+   * Legacy method to get shared records without ZK
+   */
+  private async getLegacySharedRecords(userAddress: string): Promise<SharedRecordInfo[]> {
+    const sharedRecordIds = await this.getSharedRecords(userAddress);
+    const sharedRecordInfos: SharedRecordInfo[] = [];
+
+    for (const recordId of sharedRecordIds) {
+      try {
+        const record = await this.getRecord(recordId);
+        const secureRecord: SecureRecord = {
+          ...record,
+          hasZKAccess: false,
+          accessLevel: 'shared',
+          documentUrl: getGatewayUrl(record.ipfsHash) // Legacy access
+        };
+
+        sharedRecordInfos.push({
+          recordId,
+          sharedBy: record.studentAddress,
+          sharedAt: record.timestamp,
+          accessLevel: 'shared',
+          record: secureRecord
+        });
+      } catch (error) {
+        console.warn(`Failed to process legacy shared record ${recordId}:`, error);
+      }
+    }
+
+    return sharedRecordInfos;
+  }
+
+  /**
+   * Validate ZK proof before generating document URL
+   */
+  async validateZKAccessAndGetURL(recordId: number): Promise<ZKAccessResult> {
+    if (!this.zkInitialized) {
+      return {
+        hasAccess: false,
+        error: 'ZK service not initialized'
+      };
+    }
+
+    try {
+      const hasAccess = await zkService.hasAccessToRecord(recordId);
+      if (!hasAccess) {
+        return {
+          hasAccess: false,
+          error: 'Access denied - user does not have permission to view this document'
+        };
+      }
+
+      const ipfsHash = await zkService.verifyDocumentAccess(recordId);
+      if (!ipfsHash) {
+        return {
+          hasAccess: false,
+          error: 'ZK proof verification failed'
+        };
+      }
+
+      return {
+        hasAccess: true,
+        ipfsHash
+      };
+    } catch (error) {
+      console.error('ZK access validation failed:', error);
+      return {
+        hasAccess: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
+   * Enhanced record sharing with ZK access control
+   * Note: This extends the existing shareRecord method with ZK integration
+   */
+  async shareRecordWithZK(
+    recordId: number,
+    sharedWithAddress: string
+  ): Promise<void> {
+    // Call the existing share method
+    this.ensureContract();
+    const tx = await this.contract!.shareRecord(recordId, sharedWithAddress);
+    await tx.wait();
+
+    // If ZK is initialized, the ZK contract should handle access credential generation
+    // This is handled by the smart contract integration
+    if (this.zkInitialized) {
+      console.log(`Record ${recordId} shared with ZK access control for ${sharedWithAddress}`);
+    }
+  }
+
+  /**
+   * Enhanced record unsharing with ZK access control
+   */
+  async unshareRecordWithZK(
+    recordId: number,
+    sharedWithAddress: string
+  ): Promise<void> {
+    // Call the existing unshare method
+    this.ensureContract();
+    const tx = await this.contract!.unshareRecord(recordId, sharedWithAddress);
+    await tx.wait();
+
+    // ZK access revocation is handled by the smart contract
+    if (this.zkInitialized) {
+      console.log(`ZK access revoked for record ${recordId} from ${sharedWithAddress}`);
+    }
+  }
+
+  /**
+   * Check if ZK service is available and initialized
+   */
+  isZKEnabled(): boolean {
+    return this.zkInitialized;
+  }
+
+  /**
+   * Get ZK service instance for advanced operations
+   */
+  getZKService() {
+    if (!this.zkInitialized) {
+      throw new Error('ZK service not initialized');
+    }
+    return zkService;
   }
 }
 

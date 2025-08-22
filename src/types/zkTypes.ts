@@ -1,6 +1,9 @@
 /**
  * Zero Knowledge Proof types for document access control
+ * These types support the ZKP-based document access system
  */
+
+import { Record } from './records';
 
 // ZK Proof structure matching snarkjs format
 export interface ZKProof {
@@ -61,7 +64,7 @@ export interface CircuitInputs {
     merkleRoot: string;
 }
 
-// ZK error types
+// ZK error types for comprehensive error handling
 export enum ZKErrorType {
     CIRCUIT_NOT_LOADED = 'CIRCUIT_NOT_LOADED',
     PROOF_GENERATION_FAILED = 'PROOF_GENERATION_FAILED',
@@ -72,7 +75,10 @@ export enum ZKErrorType {
     INVALID_ACCESS_KEY = 'INVALID_ACCESS_KEY',
     CONTRACT_NOT_INITIALIZED = 'CONTRACT_NOT_INITIALIZED',
     INVALID_MERKLE_PROOF = 'INVALID_MERKLE_PROOF',
-    TIMESTAMP_EXPIRED = 'TIMESTAMP_EXPIRED'
+    TIMESTAMP_EXPIRED = 'TIMESTAMP_EXPIRED',
+    NETWORK_ERROR = 'NETWORK_ERROR',
+    WALLET_NOT_CONNECTED = 'WALLET_NOT_CONNECTED',
+    INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS'
 }
 
 // ZK-specific error class
@@ -88,17 +94,8 @@ export class ZKError extends Error {
 }
 
 // Enhanced record types with ZK access information
-export interface SecureRecord {
-    id: number;
-    studentName: string;
-    studentId: string;
-    studentAddress: string;
-    universityName: string;
-    recordType: number;
-    ipfsHash?: string; // Only available after ZK verification
-    timestamp: number;
-    university: string;
-    isValid: boolean;
+// Extends the base Record interface with ZK-specific fields
+export interface SecureRecord extends Record {
     hasZKAccess: boolean;
     documentUrl?: string;
     accessLevel: 'owner' | 'shared' | 'university' | 'admin' | 'none';
