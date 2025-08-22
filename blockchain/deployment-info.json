@@ -1,5 +1,5 @@
 {
-  "network": "sepolia",
+  "network": "hardhat",
   "timestamp": "2025-07-24T16:22:53.480Z",
   "superAdmin": "0xC0871d41A0b822D5FB9D064aE1774bfCBeE58dc6",
   "contracts": {
@@ -7,11 +7,7 @@
     "AcademicRecords": "0x1987a2339aCb20C60Ab3E13a590C457F72570350",
     "StudentManagement": "0xdeB304738Bb9a9b28Cc4C12AFd2bbC1F8807657D"
   },
-  "verifier": {
-    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "contractName": "Groth16Verifier",
-    "deployedAt": "2025-08-22T02:00:26.510Z",
-    "network": "localhost",
-    "chainId": "31337"
-  }
+  "verifier": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "zkAccessControl": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "deployedAt": "2025-08-22T02:09:10.488Z"
 }
