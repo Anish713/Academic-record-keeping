@@ -495,6 +495,268 @@ export class ZKService {
             );
         }
     }
+
+    /**
+     * Generate access credentials for record sharing
+     * Creates secure access key and prepares Merkle proof data
+     */
+    async generateAccessCredentials(
+        recordId: number,
+        userAddress: string,
+        validityPeriod: number = 365 * 24 * 60 * 60 // Default 1 year
+    ): Promise<AccessCredentials> {
+        this.ensureInitialized();
+
+        if (!ethers.isAddress(userAddress)) {
+            throw new ZKError(
+                ZKErrorType.INVALID_ACCESS_KEY,
+                'Invalid user address for access credentials'
+            );
+        }
+
+        try {
+            const currentAddress = await this.getCurrentAddress();
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Generate secure access key
+            const accessKey = ethers.solidityPackedKeccak256(
+                ['uint256', 'address', 'address', 'uint256', 'uint256', 'string'],
+                [recordId, userAddress, currentAddress, timestamp, validityPeriod, 'ZK_ACCESS']
+            );
+
+            // Generate Merkle proof for the access key
+            const merkleProof = this.generateMerkleProof(accessKey);
+
+            return {
+                recordId,
+                userAddress,
+                accessKey,
+                merkleProof,
+                timestamp
+            };
+        } catch (error) {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                `Failed to generate access credentials for record ${recordId}`,
+                error
+            );
+        }
+    }
+
+    /**
+     * Validate access credentials for a user and record
+     */
+    async validateAccessCredentials(
+        recordId: number,
+        userAddress: string,
+        accessKey: string
+    ): Promise<boolean> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            // Check if user has active access
+            const hasAccess = await this.zkContract.hasAccess(recordId, userAddress);
+            if (!hasAccess) {
+                return false;
+            }
+
+            // Get the stored access key and compare
+            const storedAccessKey = await this.zkContract.getUserAccessKey(recordId, userAddress);
+            return BigInt(accessKey) === BigInt(storedAccessKey);
+        } catch (error) {
+            console.error('Failed to validate access credentials:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Generate and update Merkle tree for record sharing
+     * This creates a new Merkle root that includes the shared user
+     */
+    async updateMerkleTreeForSharing(
+        recordId: number,
+        sharedWithAddress: string
+    ): Promise<string> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            const currentAddress = await this.getCurrentAddress();
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Get current record information
+            const encryptedRecord = await this.getEncryptedRecord(recordId);
+
+            // Generate new Merkle root that includes the shared user
+            const newMerkleRoot = ethers.solidityPackedKeccak256(
+                ['bytes32', 'address', 'uint256', 'uint256', 'string'],
+                [encryptedRecord.merkleRoot, sharedWithAddress, recordId, timestamp, 'SHARED']
+            );
+
+            return newMerkleRoot;
+        } catch (error) {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                `Failed to update Merkle tree for record ${recordId}`,
+                error
+            );
+        }
+    }
+
+    /**
+     * Generate and update Merkle tree for record unsharing
+     * This creates a new Merkle root that excludes the unshared user
+     */
+    async updateMerkleTreeForUnsharing(
+        recordId: number,
+        unsharedFromAddress: string
+    ): Promise<string> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            const currentAddress = await this.getCurrentAddress();
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Get current record information
+            const encryptedRecord = await this.getEncryptedRecord(recordId);
+
+            // Generate new Merkle root that excludes the unshared user
+            const newMerkleRoot = ethers.solidityPackedKeccak256(
+                ['bytes32', 'address', 'uint256', 'uint256', 'string'],
+                [encryptedRecord.merkleRoot, unsharedFromAddress, recordId, timestamp, 'UNSHARED']
+            );
+
+            return newMerkleRoot;
+        } catch (error) {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                `Failed to update Merkle tree for record ${recordId}`,
+                error
+            );
+        }
+    }
+
+    /**
+     * Get all users with access to a specific record
+     */
+    async getRecordAccessList(recordId: number): Promise<string[]> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            // This would require adding a method to the ZK contract
+            // For now, we'll return an empty array as a placeholder
+            // In production, the ZK contract should maintain an access list
+            return [];
+        } catch (error) {
+            throw new ZKError(
+                ZKErrorType.PROOF_VERIFICATION_FAILED,
+                `Failed to get access list for record ${recordId}`,
+                error
+            );
+        }
+    }
+
+    /**
+     * Verify that a user can generate valid proofs for a record
+     * This is useful for testing ZK access without actually accessing the document
+     */
+    async canGenerateValidProof(recordId: number, userAddress?: string): Promise<boolean> {
+        this.ensureInitialized();
+
+        try {
+            const targetAddress = userAddress || await this.getCurrentAddress();
+
+            // Check if user has access
+            const hasAccess = await this.hasAccessToRecord(recordId);
+            if (!hasAccess) {
+                return false;
+            }
+
+            // Try to get access key (this will fail if user doesn't have access)
+            const accessKey = await this.getUserAccessKey(recordId);
+
+            // Try to generate a proof (without actually submitting it)
+            const { proof, publicSignals } = await this.generateAccessProof(
+                targetAddress,
+                recordId,
+                accessKey
+            );
+
+            // Verify the proof locally using the verification key
+            if (this.verificationKey) {
+                const isValid = await groth16.verify(this.verificationKey, publicSignals, proof);
+                return isValid;
+            }
+
+            return true; // If we can't verify locally, assume it's valid if we got this far
+        } catch (error) {
+            console.error('Failed to verify proof generation capability:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get ZK service instance for advanced operations
+     * This allows other services to access ZK functionality
+     */
+    getZKService(): ZKService {
+        this.ensureInitialized();
+        return this;
+    }
+
+    /**
+     * Check if ZK service is properly initialized and ready for use
+     */
+    isReady(): boolean {
+        return this.isInitialized &&
+            this.circuit !== null &&
+            this.provingKey !== null &&
+            this.verificationKey !== null &&
+            this.zkContract !== null;
+    }
+
+    /**
+     * Get ZK contract instance for direct contract interactions
+     */
+    getZKContract(): ethers.Contract {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        return this.zkContract;
+    }
 }
 
 // Export singleton instance

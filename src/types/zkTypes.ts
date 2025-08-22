@@ -109,3 +109,39 @@ export interface SharedRecordInfo {
     accessLevel: string;
     record: SecureRecord;
 }
+
+// Sharing operation result
+export interface SharingResult {
+    success: boolean;
+    recordId: number;
+    sharedWith: string;
+    accessKey?: string;
+    merkleRoot?: string;
+    error?: string;
+}
+
+// Batch sharing operation result
+export interface BatchSharingResult {
+    totalRecords: number;
+    successfulShares: number;
+    failedShares: number;
+    results: SharingResult[];
+    errors: string[];
+}
+
+// Access key generation options
+export interface AccessKeyOptions {
+    validityPeriod?: number; // in seconds
+    accessLevel?: 'read' | 'full';
+    customSalt?: string;
+}
+
+// Merkle tree update information
+export interface MerkleTreeUpdate {
+    recordId: number;
+    oldMerkleRoot: string;
+    newMerkleRoot: string;
+    operation: 'share' | 'unshare';
+    affectedUser: string;
+    timestamp: number;
+}
