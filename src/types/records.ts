@@ -124,6 +124,9 @@ export interface RecordItem {
   type: string;
   dateIssued: string;
   universityName?: string;
+  hasZKAccess?: boolean;
+  accessLevel?: 'owner' | 'shared' | 'university' | 'admin' | 'none';
+  documentUrl?: string;
 }
 
 // Custom record type interface

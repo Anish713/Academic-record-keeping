@@ -178,6 +178,61 @@ export class ZKFallbackService {
     }
 
     /**
+     * Provide fallback university access when ZK proof fails
+     * Universities should have access to records they issued
+     */
+    async fallbackUniversityAccess(
+        recordId: number,
+        universityAddress: string,
+        record: Record,
+        originalError: ZKError
+    ): Promise<ZKAccessResult> {
+        this.incrementFallbackUsage('university_access');
+
+        // Log fallback usage
+        if (this.options.logFallbackUsage) {
+            console.warn(`Using fallback university access for record ${recordId}`, {
+                error: originalError.type,
+                universityAddress,
+                recordId
+            });
+        }
+
+        try {
+            // Validate inputs
+            if (!record || !universityAddress) {
+                return {
+                    hasAccess: false,
+                    error: 'Invalid record or university address'
+                };
+            }
+
+            // Check if university is the issuer of this record
+            if (record.universityAddress &&
+                typeof universityAddress === 'string' &&
+                record.universityAddress.toLowerCase() === universityAddress.toLowerCase()) {
+                return {
+                    hasAccess: true,
+                    ipfsHash: record.ipfsHash, // Use legacy IPFS hash
+                    error: 'Using legacy university access due to ZK service unavailability'
+                };
+            }
+
+            // Universities should only have access to records they issued
+            return {
+                hasAccess: false,
+                error: 'University does not have access to this record'
+            };
+        } catch (fallbackError) {
+            console.error('Fallback university access failed:', fallbackError);
+            return {
+                hasAccess: false,
+                error: 'Unable to verify university access'
+            };
+        }
+    }
+
+    /**
      * Provide fallback proof generation (returns mock proof for testing)
      */
     async fallbackProofGeneration(

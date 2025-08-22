@@ -4,8 +4,9 @@ import IAcademicRecords from "../contracts/IAcademicRecords.json";
 import RoleManager from "../contracts/RoleManager.json";
 import StudentManagement from "../contracts/StudentManagement.json";
 import { Record, CustomRecordType } from "../types/records";
-import { SecureRecord, SharedRecordInfo, ZKAccessResult } from "../types/zkTypes";
+import { SecureRecord, SharedRecordInfo, ZKAccessResult, ZKError, ZKErrorType } from "../types/zkTypes";
 import { zkService } from "./zkService";
+import { zkFallbackService } from "./zkFallbackService";
 import { getGatewayUrl } from "../lib/pinata";
 
 export interface University {
@@ -71,7 +72,7 @@ class BlockchainService {
   }
 
   /**
-   * Initialize ZK service for secure document access
+   * Initialize ZK service for secure document access with enhanced error handling
    */
   private async initZKService(): Promise<void> {
     try {
@@ -81,6 +82,15 @@ class BlockchainService {
     } catch (error) {
       console.warn("ZK service initialization failed, falling back to legacy access:", error);
       this.zkInitialized = false;
+
+      // Log the specific error for monitoring
+      if (error instanceof Error) {
+        console.warn("ZK initialization error details:", {
+          message: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   }
 
@@ -220,6 +230,85 @@ class BlockchainService {
     this.ensureContract();
     const recordIds = await this.contract!.getUniversityRecords();
     return recordIds.map((id: bigint) => Number(id));
+  }
+
+  /**
+   * Get university records with ZK access verification
+   * Returns records with proper ZK access for universities
+   */
+  async getUniversityRecordsWithZKAccess(): Promise<SecureRecord[]> {
+    try {
+      const currentAddress = await this.getCurrentAddress();
+
+      // Verify university role
+      const isUniversity = await this.hasRole('UNIVERSITY_ROLE', currentAddress);
+      if (!isUniversity) {
+        throw new Error('User does not have university role');
+      }
+
+      const recordIds = await this.getUniversityRecords();
+      const records: SecureRecord[] = [];
+
+      for (const recordId of recordIds) {
+        try {
+          const secureRecord = await this.getRecordWithZKAccess(recordId);
+
+          // Ensure university has proper access level
+          if (secureRecord.accessLevel === 'university' || secureRecord.accessLevel === 'owner') {
+            records.push(secureRecord);
+          }
+        } catch (error) {
+          console.warn(`Failed to get ZK access for university record ${recordId}:`, error);
+
+          // Try to get basic record information as fallback
+          try {
+            const basicRecord = await this.getRecord(recordId);
+            const fallbackRecord: SecureRecord = {
+              ...basicRecord,
+              hasZKAccess: false,
+              accessLevel: 'university',
+              documentUrl: undefined // No document access in fallback
+            };
+            records.push(fallbackRecord);
+          } catch (fallbackError) {
+            console.error(`Failed to get fallback record ${recordId}:`, fallbackError);
+          }
+        }
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Failed to get university records with ZK access:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Verify university access to a specific record
+   * Universities should have automatic access to records they issued
+   */
+  async verifyUniversityRecordAccess(recordId: number): Promise<boolean> {
+    try {
+      const currentAddress = await this.getCurrentAddress();
+
+      // Verify university role
+      const isUniversity = await this.hasRole('UNIVERSITY_ROLE', currentAddress);
+      if (!isUniversity) {
+        return false;
+      }
+
+      // Check if ZK service is initialized
+      if (this.zkInitialized) {
+        return await zkService.validateUniversityAccess(recordId, currentAddress);
+      } else {
+        // Fallback: check if university issued this record
+        const record = await this.getRecord(recordId);
+        return record.universityAddress?.toLowerCase() === currentAddress.toLowerCase();
+      }
+    } catch (error) {
+      console.error(`Failed to verify university access for record ${recordId}:`, error);
+      return false;
+    }
   }
 
   async verifyRecord(recordId: number): Promise<boolean> {
@@ -390,63 +479,118 @@ class BlockchainService {
 
   /**
    * Get record with ZK access control - returns record with document URL only if user has access
+   * Enhanced with comprehensive error handling and fallback mechanisms
    */
   async getRecordWithZKAccess(recordId: number): Promise<SecureRecord> {
     this.ensureContract();
 
-    // Get basic record data
-    const record = await this.getRecord(recordId);
-    const currentAddress = await this.getCurrentAddress();
+    try {
+      // Get basic record data
+      const record = await this.getRecord(recordId);
+      const currentAddress = await this.getCurrentAddress();
 
-    // Initialize secure record with basic data
-    const secureRecord: SecureRecord = {
-      ...record,
-      hasZKAccess: false,
-      accessLevel: 'none'
-    };
+      // Initialize secure record with basic data
+      const secureRecord: SecureRecord = {
+        ...record,
+        hasZKAccess: false,
+        accessLevel: 'none'
+      };
 
-    // Determine access level
-    if (record.studentAddress.toLowerCase() === currentAddress.toLowerCase()) {
-      secureRecord.accessLevel = 'owner';
-    } else if (await this.hasRole('UNIVERSITY_ROLE', currentAddress)) {
-      secureRecord.accessLevel = 'university';
-    } else if (await this.hasRole('ADMIN_ROLE', currentAddress) || await this.hasRole('SUPER_ADMIN_ROLE', currentAddress)) {
-      secureRecord.accessLevel = 'admin';
-    } else if (await this.isRecordSharedWith(recordId, currentAddress)) {
-      secureRecord.accessLevel = 'shared';
-    }
+      // Determine access level
+      if (record.studentAddress.toLowerCase() === currentAddress.toLowerCase()) {
+        secureRecord.accessLevel = 'owner';
+      } else if (await this.hasRole('UNIVERSITY_ROLE', currentAddress)) {
+        secureRecord.accessLevel = 'university';
+      } else if (await this.hasRole('ADMIN_ROLE', currentAddress) || await this.hasRole('SUPER_ADMIN_ROLE', currentAddress)) {
+        secureRecord.accessLevel = 'admin';
+      } else if (await this.isRecordSharedWith(recordId, currentAddress)) {
+        secureRecord.accessLevel = 'shared';
+      }
 
-    // Try ZK access if service is initialized
-    if (this.zkInitialized) {
-      try {
-        const hasAccess = await zkService.hasAccessToRecord(recordId);
-        if (hasAccess) {
-          const ipfsHash = await zkService.verifyDocumentAccess(recordId);
+      // Try ZK access if service is initialized
+      if (this.zkInitialized) {
+        try {
+          let ipfsHash: string | null = null;
+
+          // Use specialized university access for university users
+          if (secureRecord.accessLevel === 'university') {
+            ipfsHash = await zkService.verifyUniversityDocumentAccess(recordId, currentAddress, record);
+          } else {
+            // Use regular ZK access for other users
+            const hasAccess = await zkService.hasAccessToRecord(recordId);
+            if (hasAccess) {
+              ipfsHash = await zkService.verifyDocumentAccess(recordId, record);
+            }
+          }
+
           if (ipfsHash) {
             secureRecord.hasZKAccess = true;
             secureRecord.ipfsHash = ipfsHash;
             secureRecord.documentUrl = getGatewayUrl(ipfsHash);
           }
+        } catch (zkError) {
+          console.warn(`ZK access verification failed for record ${recordId}:`, zkError);
+
+          // Use fallback service for graceful degradation
+          try {
+            let fallbackResult;
+
+            // Use specialized university fallback for university users
+            if (secureRecord.accessLevel === 'university') {
+              fallbackResult = await zkFallbackService.fallbackUniversityAccess(
+                recordId,
+                currentAddress,
+                record,
+                zkError instanceof Error ?
+                  new ZKError(ZKErrorType.PROOF_VERIFICATION_FAILED, zkError.message) :
+                  new ZKError(ZKErrorType.PROOF_VERIFICATION_FAILED, 'Unknown ZK error')
+              );
+            } else {
+              fallbackResult = await zkFallbackService.fallbackDocumentAccess(
+                recordId,
+                currentAddress,
+                record,
+                zkError instanceof Error ?
+                  new ZKError(ZKErrorType.PROOF_VERIFICATION_FAILED, zkError.message) :
+                  new ZKError(ZKErrorType.PROOF_VERIFICATION_FAILED, 'Unknown ZK error')
+              );
+            }
+
+            if (fallbackResult.hasAccess && fallbackResult.ipfsHash) {
+              secureRecord.documentUrl = getGatewayUrl(fallbackResult.ipfsHash);
+              console.info(`Using fallback access for record ${recordId}`);
+            }
+          } catch (fallbackError) {
+            console.error(`Fallback access also failed for record ${recordId}:`, fallbackError);
+          }
         }
-      } catch (error) {
-        console.warn(`ZK access verification failed for record ${recordId}:`, error);
-        // Fall back to legacy access for owners, universities, and admins
+      } else {
+        // Legacy access for backward compatibility when ZK is not initialized
+        console.info(`Using legacy access for record ${recordId} (ZK not initialized)`);
         if (secureRecord.accessLevel === 'owner' ||
           secureRecord.accessLevel === 'university' ||
           secureRecord.accessLevel === 'admin') {
           secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
         }
       }
-    } else {
-      // Legacy access for backward compatibility
-      if (secureRecord.accessLevel === 'owner' ||
-        secureRecord.accessLevel === 'university' ||
-        secureRecord.accessLevel === 'admin') {
-        secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
+
+      return secureRecord;
+    } catch (error) {
+      console.error(`Failed to get record ${recordId} with ZK access:`, error);
+
+      // Return minimal record information on complete failure
+      try {
+        const record = await this.getRecord(recordId);
+        return {
+          ...record,
+          hasZKAccess: false,
+          accessLevel: 'none'
+        };
+      } catch (recordError) {
+        console.error(`Failed to get basic record ${recordId}:`, recordError);
+        throw new Error(`Unable to access record ${recordId}`);
       }
     }
-
-    return secureRecord;
   }
 
   /**

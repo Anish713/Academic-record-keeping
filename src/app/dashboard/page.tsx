@@ -67,21 +67,18 @@ export default function DashboardPage() {
       setError("");
 
       try {
-        const recordIds = await blockchainService.getUniversityRecords();
+        // Use ZK-enhanced university records method
+        const secureRecords = await blockchainService.getUniversityRecordsWithZKAccess();
 
-        const recordsData = await Promise.all(
-          recordIds.map(async (id: number) => {
-            const record = await blockchainService.getRecord(id);
-            return {
-              id: id.toString(),
-              studentName: record.studentName,
-              type: getRecordTypeName(record.recordType),
-              dateIssued: new Date(
-                record.timestamp * 1000
-              ).toLocaleDateString(),
-            };
-          })
-        );
+        const recordsData = secureRecords.map((record) => ({
+          id: record.id.toString(),
+          studentName: record.studentName,
+          type: getRecordTypeName(record.recordType),
+          dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+          hasZKAccess: record.hasZKAccess,
+          accessLevel: record.accessLevel,
+          documentUrl: record.documentUrl
+        }));
 
         setRecords(recordsData);
       } catch (err) {
@@ -179,6 +176,9 @@ export default function DashboardPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date Issued
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Access Status
+                  </th>
                   <th className="relative px-6 py-3">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -201,6 +201,20 @@ export default function DashboardPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {record.dateIssued}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          record.hasZKAccess 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {record.hasZKAccess ? 'ZK Secured' : 'Legacy Access'}
+                        </span>
+                        <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                          {record.accessLevel === 'university' ? 'University' : record.accessLevel}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         className="text-blue-600 hover:text-blue-900 mr-4"
@@ -208,6 +222,14 @@ export default function DashboardPage() {
                       >
                         View
                       </button>
+                      {record.documentUrl && (
+                        <button
+                          className="text-green-600 hover:text-green-900 mr-4"
+                          onClick={() => window.open(record.documentUrl, '_blank')}
+                        >
+                          Document
+                        </button>
+                      )}
                       <button className="text-red-600 hover:text-red-900">
                         Delete
                       </button>
