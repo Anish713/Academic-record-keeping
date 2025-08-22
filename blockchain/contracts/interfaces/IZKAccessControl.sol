@@ -106,4 +106,6 @@ interface IZKAccessControl {
         uint256 recordId,
         address user
     ) external view returns (bool);
+
+    function getUserAccessibleRecords(address user) external view returns (uint256[] memory);
 }

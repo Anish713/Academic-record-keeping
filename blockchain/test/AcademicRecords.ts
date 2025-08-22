@@ -17,12 +17,22 @@ describe("AcademicRecords", function () {
     // Get signers
     [owner, university, student, otherAccount] = await ethers.getSigners();
 
-    // Deploy the contract
-    const AcademicRecords = await ethers.getContractFactory("AcademicRecords");
+    // Deploy RecordStorage library
+    const RecordStorage = await ethers.getContractFactory("RecordStorage");
+    const recordStorage = await RecordStorage.deploy();
+    await recordStorage.waitForDeployment();
+    const recordStorageAddress = await recordStorage.getAddress();
+
+    // Deploy the contract with library linking
+    const AcademicRecords = await ethers.getContractFactory("AcademicRecords", {
+      libraries: {
+        RecordStorage: recordStorageAddress,
+      },
+    });
     academicRecords = await AcademicRecords.deploy();
 
     // Add university role
-    await academicRecords.addUniversity(university.address);
+    await academicRecords.addUniversity(university.address, "Test University");
   });
 
   describe("Deployment", function () {

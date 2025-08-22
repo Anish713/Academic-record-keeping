@@ -22,7 +22,8 @@ contract ZKAccessControl is IZKAccessControl, RoleManager, Pausable {
         require(
             encryptedRecords[recordId].owner == msg.sender ||
             hasRole(ADMIN_ROLE, msg.sender) ||
-            msg.sender == SUPER_ADMIN,
+            msg.sender == SUPER_ADMIN ||
+            hasRole(keccak256("ACADEMIC_RECORDS_ROLE"), msg.sender),
             "Not record owner or admin"
         );
         _;
@@ -120,7 +121,8 @@ contract ZKAccessControl is IZKAccessControl, RoleManager, Pausable {
         require(
             hasRole(UNIVERSITY_ROLE, msg.sender) ||
             hasRole(ADMIN_ROLE, msg.sender) ||
-            msg.sender == SUPER_ADMIN,
+            msg.sender == SUPER_ADMIN ||
+            hasRole(keccak256("ACADEMIC_RECORDS_ROLE"), msg.sender),
             "Not authorized to store records"
         );
         require(owner != address(0), "Invalid owner address");

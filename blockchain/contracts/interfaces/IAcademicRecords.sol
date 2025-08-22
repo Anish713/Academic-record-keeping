@@ -100,4 +100,19 @@ interface IAcademicRecords {
         address indexed creator
     );
     event CustomRecordTypeUpdated(uint256 indexed typeId, bool isActive);
+    event ZKAccessControlSet(address indexed zkAccessControl);
+
+    // ZK Access Control Functions
+    function setZKAccessControl(address _zkAccessControl) external;
+    
+    function getRecordWithZKProof(
+        uint256 recordId,
+        uint[2] memory _pA,
+        uint[2][2] memory _pB,
+        uint[2] memory _pC,
+        uint[3] memory publicSignals,
+        string memory originalIPFSHash
+    ) external view returns (Record memory record, string memory decryptedIPFSHash);
+    
+    function getRecordsWithZKAccess(address userAddress) external view returns (uint256[] memory);
 }
