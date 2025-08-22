@@ -31,10 +31,10 @@ export class ZKService {
     // Contract addresses - should be set via environment variables
     private readonly ZK_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ZK_CONTRACT_ADDRESS || '';
 
-    // Circuit paths
-    private readonly CIRCUIT_WASM_PATH = '../../circuits/access-control_js/access-control.wasm';
-    private readonly PROVING_KEY_PATH = '../../circuits/access-control_0001.zkey';
-    private readonly VERIFICATION_KEY_PATH = '../../circuits/verification_key.json';
+    // Circuit paths - use environment variables if available
+    private readonly CIRCUIT_WASM_PATH = process.env.NEXT_PUBLIC_ZK_CIRCUIT_WASM_URL || '/circuits/access-control_js/access-control.wasm';
+    private readonly PROVING_KEY_PATH = process.env.NEXT_PUBLIC_ZK_PROVING_KEY_URL || '/circuits/access-control_0001.zkey';
+    private readonly VERIFICATION_KEY_PATH = process.env.NEXT_PUBLIC_ZK_VERIFICATION_KEY_URL || '/circuits/verification_key.json';
 
     /**
      * Initialize the ZK service by loading circuit artifacts with retry logic
@@ -106,14 +106,24 @@ export class ZKService {
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
+            console.log(`Loading ZK resource: ${url}`);
             const response = await fetch(url, {
                 signal: controller.signal,
                 cache: 'no-cache' // Prevent stale cache issues
             });
             clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                console.error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+            } else {
+                console.log(`Successfully loaded ${url} (${response.headers.get('content-type')})`);
+            }
+
             return response;
         } catch (error) {
             clearTimeout(timeoutId);
+            console.error(`Error loading ${url}:`, error);
+
             if (error instanceof Error && error.name === 'AbortError') {
                 throw new ZKError(
                     ZKErrorType.NETWORK_ERROR,
@@ -374,6 +384,13 @@ export class ZKService {
         recordId: number,
         accessKey: string
     ): Promise<{ proof: ZKProof; publicSignals: string[] }> {
+        // Check if proof generation is disabled for debugging
+        if (process.env.ZK_DISABLE_PROOF_GENERATION === 'true') {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                'ZK proof generation is disabled for debugging'
+            );
+        }
         const context: Partial<ErrorContext> = {
             operation: 'generate_access_proof',
             recordId,
@@ -413,6 +430,10 @@ export class ZKService {
                 };
 
                 // Add timeout to proof generation to prevent hanging
+                console.log('Generating ZK proof with input:', input);
+                console.log('Circuit loaded:', this.circuit !== null);
+                console.log('Proving key loaded:', this.provingKey !== null);
+
                 const proofPromise = groth16.fullProve(
                     input,
                     this.circuit!,
