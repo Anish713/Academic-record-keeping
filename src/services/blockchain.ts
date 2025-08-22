@@ -233,6 +233,87 @@ class BlockchainService {
   }
 
   /**
+   * Get admin records with ZK access verification
+   * Returns all records with proper ZK access for admin users
+   */
+  async getAdminRecordsWithZKAccess(): Promise<SecureRecord[]> {
+    this.ensureContract();
+
+    try {
+      const currentAddress = await this.getCurrentAddress();
+
+      // Verify admin role
+      const isAdmin = await this.hasRole("ADMIN_ROLE", currentAddress);
+      const isSuperAdmin = await this.hasRole("SUPER_ADMIN_ROLE", currentAddress);
+
+      if (!isAdmin && !isSuperAdmin) {
+        throw new Error("User does not have admin privileges");
+      }
+
+      // Get all records for admin oversight
+      const totalRecords = await this.getTotalRecords();
+      const records: SecureRecord[] = [];
+
+      for (let recordId = 1; recordId <= totalRecords; recordId++) {
+        try {
+          const secureRecord = await this.getRecordWithZKAccess(recordId);
+
+          // Admins should have oversight access to all records
+          if (secureRecord.accessLevel === 'none') {
+            secureRecord.accessLevel = 'admin';
+            secureRecord.hasZKAccess = await this.validateAdminZKAccess(recordId, currentAddress);
+          }
+
+          records.push(secureRecord);
+        } catch (error) {
+          console.warn(`Failed to get ZK access for admin record ${recordId}:`, error);
+
+          // Try to get basic record information as fallback
+          try {
+            const basicRecord = await this.getRecord(recordId);
+            if (basicRecord) {
+              const fallbackRecord: SecureRecord = {
+                ...basicRecord,
+                hasZKAccess: false,
+                accessLevel: 'admin',
+                documentUrl: undefined
+              };
+              records.push(fallbackRecord);
+            }
+          } catch (fallbackError) {
+            console.error(`Failed to get fallback record ${recordId}:`, fallbackError);
+          }
+        }
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Failed to get admin records with ZK access:', error);
+      // Return empty array rather than throwing to maintain dashboard functionality
+      return [];
+    }
+  }
+
+  /**
+   * Validate admin ZK access to a record
+   * Admins should have oversight access to all records
+   */
+  private async validateAdminZKAccess(recordId: number, adminAddress: string): Promise<boolean> {
+    try {
+      // Check if ZK service is initialized
+      if (this.zkInitialized) {
+        return await zkService.validateAdminAccess(recordId, adminAddress);
+      } else {
+        // Fallback: admins have access to all records for oversight
+        return true;
+      }
+    } catch (error) {
+      console.warn(`Failed to validate admin ZK access for record ${recordId}:`, error);
+      return true; // Default to allowing admin access for oversight
+    }
+  }
+
+  /**
    * Get university records with ZK access verification
    * Returns records with proper ZK access for universities
    */

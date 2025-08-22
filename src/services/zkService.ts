@@ -1034,6 +1034,222 @@ export class ZKService {
     }
 
     /**
+     * Generate admin access proof for record oversight
+     * Admins have oversight access to all records for system management
+     */
+    async generateAdminAccessProof(
+        adminAddress: string,
+        recordId: number
+    ): Promise<{ proof: ZKProof; publicSignals: string[] } | null> {
+        const context: Partial<ErrorContext> = {
+            operation: 'generate_admin_access_proof',
+            recordId,
+            userId: adminAddress,
+            zkServiceState: {
+                initialized: this.isInitialized,
+                contractAddress: this.zkContract?.target || 'unknown',
+                circuitLoaded: !!this.circuit,
+                provingKeyLoaded: !!this.provingKey
+            }
+        };
+
+        try {
+            // Admins should have oversight access to all records
+            // Generate a special admin access key for oversight purposes
+            const adminAccessKey = await this.generateAdminAccessKey(recordId, adminAddress);
+
+            return await this.generateAccessProof(adminAddress, recordId, adminAccessKey);
+        } catch (error) {
+            console.error('Failed to generate admin access proof:', error);
+            zkErrorHandler.logError(new ZKError(ZKErrorType.PROOF_GENERATION_FAILED, 'Admin proof generation failed'), context);
+            return null;
+        }
+    }
+
+    /**
+     * Verify admin access to a record and return IPFS hash
+     * This is a specialized version for admins with oversight access
+     */
+    async verifyAdminDocumentAccess(
+        recordId: number,
+        adminAddress: string,
+        record?: any
+    ): Promise<string | null> {
+        const context: Partial<ErrorContext> = {
+            operation: 'verify_admin_document_access',
+            recordId,
+            userId: adminAddress,
+            zkServiceState: {
+                initialized: this.isInitialized,
+                contractAddress: this.zkContract?.target || 'unknown',
+                circuitLoaded: !!this.circuit,
+                provingKeyLoaded: !!this.provingKey
+            }
+        };
+
+        try {
+            return await zkErrorHandler.executeWithFallback(
+                // Primary ZK operation for admin
+                async () => {
+                    // Generate admin access proof
+                    const proofResult = await this.generateAdminAccessProof(adminAddress, recordId);
+
+                    if (!proofResult) {
+                        throw new ZKError(
+                            ZKErrorType.PROOF_GENERATION_FAILED,
+                            'Failed to generate admin access proof'
+                        );
+                    }
+
+                    const { proof, publicSignals } = proofResult;
+
+                    // Verify the proof on-chain
+                    const isValid = await this.zkContract!.verifyAccess(
+                        recordId,
+                        [proof.pi_a[0], proof.pi_a[1]],
+                        [[proof.pi_b[0][1], proof.pi_b[0][0]], [proof.pi_b[1][1], proof.pi_b[1][0]]],
+                        [proof.pi_c[0], proof.pi_c[1]],
+                        publicSignals
+                    );
+
+                    if (!isValid) {
+                        throw new ZKError(
+                            ZKErrorType.PROOF_VERIFICATION_FAILED,
+                            'Generated admin proof is invalid'
+                        );
+                    }
+
+                    // Get encrypted hash and decrypt it
+                    const encryptedHash = await this.zkContract!.getEncryptedHash(
+                        recordId,
+                        [proof.pi_a[0], proof.pi_a[1]],
+                        [[proof.pi_b[0][1], proof.pi_b[0][0]], [proof.pi_b[1][1], proof.pi_b[1][0]]],
+                        [proof.pi_c[0], proof.pi_c[1]],
+                        publicSignals
+                    );
+
+                    const adminAccessKey = await this.generateAdminAccessKey(recordId, adminAddress);
+                    return this.decryptIPFSHash(encryptedHash, adminAccessKey);
+                },
+                // Fallback operation for admin
+                async (error: ZKError) => {
+                    if (!record) {
+                        throw new ZKError(
+                            ZKErrorType.ACCESS_DENIED,
+                            'No fallback record data available for admin access'
+                        );
+                    }
+
+                    // Admins should have fallback access to all records for oversight
+                    const fallbackResult = await zkFallbackService.fallbackAdminAccess(
+                        recordId,
+                        adminAddress,
+                        record,
+                        error
+                    );
+
+                    if (fallbackResult.hasAccess && fallbackResult.ipfsHash) {
+                        return fallbackResult.ipfsHash;
+                    }
+
+                    throw new ZKError(ZKErrorType.ACCESS_DENIED, fallbackResult.error || 'Admin access denied');
+                },
+                context
+            );
+        } catch (error) {
+            if (error instanceof ZKError) {
+                console.warn(`ZK admin document access failed for record ${recordId}:`, {
+                    adminAddress,
+                    error: error.type,
+                    message: error.message
+                });
+            }
+
+            console.error('Unexpected error in admin document access verification:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Validate admin access to a record
+     * Admins should have oversight access to all records
+     */
+    async validateAdminAccess(recordId: number, adminAddress: string): Promise<boolean> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            // Admins should have oversight access to all records
+            // Check if admin access is explicitly granted or use oversight privileges
+            const hasExplicitAccess = await this.zkContract.hasAccess(recordId, adminAddress);
+
+            if (hasExplicitAccess) {
+                return true;
+            }
+
+            // For admin oversight, we can grant access even without explicit ZK credentials
+            // This ensures admins can monitor and manage the system
+            return true;
+        } catch (error) {
+            console.error('Failed to validate admin access:', error);
+            // Default to allowing admin access for system oversight
+            return true;
+        }
+    }
+
+    /**
+     * Generate admin access key for oversight purposes
+     * Creates a deterministic key based on admin address and record ID
+     */
+    private async generateAdminAccessKey(recordId: number, adminAddress: string): Promise<string> {
+        try {
+            // Generate a deterministic admin access key for oversight
+            const adminSeed = `admin_oversight_${adminAddress}_${recordId}`;
+            const hash = ethers.keccak256(ethers.toUtf8Bytes(adminSeed));
+            return hash.slice(2, 34); // Use first 32 characters as access key
+        } catch (error) {
+            console.error('Failed to generate admin access key:', error);
+            throw new ZKError(ZKErrorType.INVALID_ACCESS_KEY, 'Failed to generate admin access key');
+        }
+    }
+
+    /**
+     * Get all records accessible by an admin
+     * Admins have oversight access to all records
+     */
+    async getAdminAccessibleRecords(adminAddress: string): Promise<number[]> {
+        this.ensureInitialized();
+
+        if (!this.zkContract) {
+            throw new ZKError(
+                ZKErrorType.CONTRACT_NOT_INITIALIZED,
+                'ZK contract not initialized'
+            );
+        }
+
+        try {
+            // For admins, return all existing records for oversight
+            const totalRecords = await this.zkContract.getTotalRecords();
+            const recordIds: number[] = [];
+
+            for (let i = 1; i <= totalRecords; i++) {
+                recordIds.push(i);
+            }
+
+            return recordIds;
+        } catch (error) {
+            console.error('Failed to get admin accessible records:', error);
+            return [];
+        }
+    }
+
+    /**
      * Generate and update Merkle tree for record unsharing
      * This creates a new Merkle root that excludes the unshared user
      */

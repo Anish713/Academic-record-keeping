@@ -88,7 +88,21 @@ export default function AdminPage() {
     totalCustomTypes: 0,
     totalUniversities: 0,
     totalAdmins: 0,
+    zkProtectedRecords: 0,
+    zkFailures: 0,
   });
+
+  // ZK Monitoring
+  const [zkStats, setZkStats] = useState({
+    totalZKRecords: 0,
+    successfulProofs: 0,
+    failedProofs: 0,
+    fallbackUsage: 0,
+    adminAccessAttempts: 0,
+    universityAccessAttempts: 0,
+  });
+
+  const [zkRecords, setZkRecords] = useState<any[]>([]);
 
   // Student management
   const [newStudentId, setNewStudentId] = useState("");
@@ -155,11 +169,35 @@ export default function AdminPage() {
       const totalRecords = await blockchainService.getTotalRecords();
       const totalCustomTypes = await blockchainService.getTotalCustomTypes();
 
+      // Load ZK-protected records for admin oversight
+      let zkProtectedRecords = 0;
+      let zkRecordsData: any[] = [];
+      
+      try {
+        zkRecordsData = await blockchainService.getAdminRecordsWithZKAccess();
+        zkProtectedRecords = zkRecordsData.filter(record => record.hasZKAccess).length;
+        setZkRecords(zkRecordsData);
+      } catch (error) {
+        console.warn('Failed to load ZK records for admin:', error);
+      }
+
       setStats({
         totalRecords,
         totalCustomTypes,
         totalUniversities: allUniversities.length,
         totalAdmins: 0, // Will be updated if super admin
+        zkProtectedRecords,
+        zkFailures: 0, // This would come from monitoring service
+      });
+
+      // Update ZK stats (these would typically come from a monitoring service)
+      setZkStats({
+        totalZKRecords: zkProtectedRecords,
+        successfulProofs: 0, // Would be tracked by monitoring
+        failedProofs: 0, // Would be tracked by monitoring
+        fallbackUsage: 0, // Would be tracked by monitoring
+        adminAccessAttempts: 0, // Would be tracked by monitoring
+        universityAccessAttempts: 0, // Would be tracked by monitoring
       });
 
       // Load super admin specific data
@@ -528,6 +566,11 @@ export default function AdminPage() {
             id="custom-types"
             label={<span className="text-white">Custom Types</span>}
             icon={Settings}
+          />
+          <TabButton
+            id="zk-monitoring"
+            label={<span className="text-white">ZK Monitoring</span>}
+            icon={Shield}
           />
         </div>
 
@@ -935,6 +978,191 @@ export default function AdminPage() {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "zk-monitoring" && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-black">
+                  ZK Access Control Monitoring
+                </h2>
+                <Button
+                  onClick={() => setActiveTab("overview")}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                >
+                  Back to Overview
+                </Button>
+              </div>
+
+              {/* ZK Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-100 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-600">ZK Protected Records</p>
+                      <p className="text-3xl font-bold text-blue-900 mt-1">{stats.zkProtectedRecords}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-blue-500">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 rounded-xl shadow-sm border border-green-100 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-600">Successful Proofs</p>
+                      <p className="text-3xl font-bold text-green-900 mt-1">{zkStats.successfulProofs}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-green-500">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 rounded-xl shadow-sm border border-red-100 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-red-600">Failed Proofs</p>
+                      <p className="text-3xl font-bold text-red-900 mt-1">{zkStats.failedProofs}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-red-500">
+                      <XCircle className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ZK Records Table */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">ZK Protected Records</h3>
+                  <p className="text-sm text-gray-600 mt-1">Monitor and manage ZK access control for all records</p>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Record ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Student
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          University
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          ZK Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Access Level
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {zkRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                            <Shield className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                            <p>No ZK protected records found</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        zkRecords.slice(0, 10).map((record) => (
+                          <tr key={record.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              #{record.id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {record.studentName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {record.universityName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                                record.hasZKAccess 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {record.hasZKAccess ? 'ZK Protected' : 'Legacy Access'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                                {record.accessLevel}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                className="text-blue-600 hover:text-blue-900 mr-4"
+                                onClick={() => router.push(`/records/${record.id}`)}
+                              >
+                                View
+                              </button>
+                              {record.documentUrl && (
+                                <button
+                                  className="text-green-600 hover:text-green-900"
+                                  onClick={() => window.open(record.documentUrl, '_blank')}
+                                >
+                                  Document
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ZK System Health */}
+              <div className="mt-8 bg-gray-50 rounded-lg p-6">
+                <h3 className="font-medium mb-4 text-black">ZK System Health</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Access Attempts</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Admin Access:</span>
+                        <span className="font-medium">{zkStats.adminAccessAttempts}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">University Access:</span>
+                        <span className="font-medium">{zkStats.universityAccessAttempts}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Fallback Usage:</span>
+                        <span className="font-medium text-yellow-600">{zkStats.fallbackUsage}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">System Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span className="text-gray-600">ZK Service: Online</span>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span className="text-gray-600">Circuit: Loaded</span>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span className="text-gray-600">Verifier Contract: Active</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -233,6 +233,52 @@ export class ZKFallbackService {
     }
 
     /**
+     * Provide fallback admin access when ZK proof fails
+     * Admins should have oversight access to all records
+     */
+    async fallbackAdminAccess(
+        recordId: number,
+        adminAddress: string,
+        record: Record,
+        originalError: ZKError
+    ): Promise<ZKAccessResult> {
+        this.incrementFallbackUsage('admin_access');
+
+        // Log fallback usage
+        if (this.options.logFallbackUsage) {
+            console.warn(`Using fallback admin access for record ${recordId}`, {
+                error: originalError.type,
+                adminAddress,
+                recordId
+            });
+        }
+
+        try {
+            // Validate inputs
+            if (!record || !adminAddress) {
+                return {
+                    hasAccess: false,
+                    error: 'Invalid record or admin address'
+                };
+            }
+
+            // Admins should have oversight access to all records for system management
+            // This is a fallback mechanism when ZK proofs fail
+            return {
+                hasAccess: true,
+                ipfsHash: record.ipfsHash, // Use legacy IPFS hash for admin oversight
+                error: 'Using legacy admin oversight access due to ZK service unavailability'
+            };
+        } catch (fallbackError) {
+            console.error('Fallback admin access failed:', fallbackError);
+            return {
+                hasAccess: false,
+                error: 'Unable to verify admin access'
+            };
+        }
+    }
+
+    /**
      * Provide fallback proof generation (returns mock proof for testing)
      */
     async fallbackProofGeneration(
