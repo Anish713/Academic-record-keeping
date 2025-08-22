@@ -32,9 +32,9 @@ export class ZKService {
     private readonly ZK_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ZK_CONTRACT_ADDRESS || '';
 
     // Circuit paths
-    private readonly CIRCUIT_WASM_PATH = '/circuits/access-control_js/access-control.wasm';
-    private readonly PROVING_KEY_PATH = '/circuits/access-control_0001.zkey';
-    private readonly VERIFICATION_KEY_PATH = '/circuits/verification_key.json';
+    private readonly CIRCUIT_WASM_PATH = '../../circuits/access-control_js/access-control.wasm';
+    private readonly PROVING_KEY_PATH = '../../circuits/access-control_0001.zkey';
+    private readonly VERIFICATION_KEY_PATH = '../../circuits/verification_key.json';
 
     /**
      * Initialize the ZK service by loading circuit artifacts with retry logic

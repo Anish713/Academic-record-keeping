@@ -87,6 +87,7 @@ class EnvContractUpdater {
         // Extract ZK contract addresses
         if (deploymentInfo.zkAccessControl) {
             addresses.NEXT_PUBLIC_ZK_ACCESS_CONTROL_CONTRACT_ADDRESS = deploymentInfo.zkAccessControl;
+            addresses.NEXT_PUBLIC_ZK_CONTRACT_ADDRESS = deploymentInfo.zkAccessControl;
             addresses.ZK_CONTRACT_ADDRESS = deploymentInfo.zkAccessControl;
         }
 
@@ -184,6 +185,7 @@ class EnvContractUpdater {
         const requiredVars = [
             'NEXT_PUBLIC_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_ZK_ACCESS_CONTROL_CONTRACT_ADDRESS',
+            'NEXT_PUBLIC_ZK_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_ZK_VERIFIER_CONTRACT_ADDRESS'
         ];
 
@@ -210,6 +212,7 @@ class EnvContractUpdater {
             'NEXT_PUBLIC_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_ZK_ACCESS_CONTROL_CONTRACT_ADDRESS',
+            'NEXT_PUBLIC_ZK_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_ZK_VERIFIER_CONTRACT_ADDRESS',
             'NEXT_PUBLIC_NETWORK_ID'
         ];
