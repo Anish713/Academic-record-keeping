@@ -14,15 +14,25 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+require('dotenv').config();
 
 class ZKSystemDeployer {
     constructor(options = {}) {
-        this.network = options.network || 'localhost';
+        this.network = options.network || process.env.NEXT_PUBLIC_NETWORK_ID || 'localhost';
         this.rootDir = path.join(__dirname, '..');
         this.blockchainDir = path.join(this.rootDir, 'blockchain');
-        this.circuitsDir = path.join(this.rootDir, 'public/circuits');
+        this.circuitsDir = process.env.ZK_CIRCUIT_PATH ? path.dirname(process.env.ZK_CIRCUIT_PATH) : path.join(this.rootDir, 'public/circuits');
         this.deploymentFile = path.join(this.blockchainDir, 'zk-deployment-info.json');
         this.verbose = options.verbose || false;
+
+        // ZK configuration from environment
+        this.zkConfig = {
+            circuitPath: process.env.ZK_CIRCUIT_PATH || './circuits/access-control.circom',
+            wasmPath: process.env.ZK_WASM_PATH || './public/circuits/access-control_js/access-control.wasm',
+            provingKeyPath: process.env.ZK_PROVING_KEY_PATH || './public/circuits/access-control_0001.zkey',
+            verificationKeyPath: process.env.ZK_VERIFICATION_KEY_PATH || './circuits/verification_key.json',
+            trustedSetupPath: process.env.ZK_TRUSTED_SETUP_PTAU_PATH || './circuits/pot12_final.ptau'
+        };
     }
 
     log(message, type = 'info') {
@@ -90,8 +100,8 @@ class ZKSystemDeployer {
 
         // Check if circuit artifacts exist
         const requiredArtifacts = [
-            path.join(this.circuitsDir, 'access-control_0001.zkey'),
-            path.join(this.circuitsDir, 'verification_key.json'),
+            this.zkConfig.provingKeyPath,
+            this.zkConfig.verificationKeyPath,
             path.join(this.blockchainDir, 'contracts/verifier.sol')
         ];
 
@@ -123,7 +133,7 @@ class ZKSystemDeployer {
         this.log('Preparing circuit artifacts for deployment...');
 
         // Ensure verifier contract is up to date
-        const zkeyFile = path.join(this.circuitsDir, 'access-control_0001.zkey');
+        const zkeyFile = this.zkConfig.provingKeyPath;
         const verifierFile = path.join(this.blockchainDir, 'contracts/verifier.sol');
 
         // Regenerate verifier if needed
@@ -144,8 +154,8 @@ class ZKSystemDeployer {
         }
 
         const artifactsToCopy = [
-            { src: path.join(this.circuitsDir, 'access-control_0001.zkey'), dest: 'proving-key.zkey' },
-            { src: path.join(this.circuitsDir, 'verification_key.json'), dest: 'verification-key.json' }
+            { src: this.zkConfig.provingKeyPath, dest: 'proving-key.zkey' },
+            { src: this.zkConfig.verificationKeyPath, dest: 'verification-key.json' }
         ];
 
         for (const { src, dest } of artifactsToCopy) {

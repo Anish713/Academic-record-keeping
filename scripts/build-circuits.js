@@ -14,14 +14,26 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
+require('dotenv').config();
 
 class CircuitBuilder {
     constructor() {
-        this.circuitsDir = path.join(__dirname, '../circuits');
-        this.outputDir = path.join(__dirname, '../public/circuits');
+        this.circuitsDir = process.env.ZK_CIRCUIT_PATH ? path.dirname(process.env.ZK_CIRCUIT_PATH) : path.join(__dirname, '../circuits');
+        this.outputDir = process.env.ZK_WASM_PATH ? path.dirname(process.env.ZK_WASM_PATH) : path.join(__dirname, '../public/circuits');
         this.blockchainDir = path.join(__dirname, '../blockchain');
         this.artifactsFile = path.join(this.outputDir, 'circuit-artifacts.json');
         this.version = this.getVersion();
+
+        // ZK configuration from environment
+        this.zkConfig = {
+            circuitName: process.env.ZK_CIRCUIT_NAME || 'access-control',
+            ptauPower: parseInt(process.env.ZK_PTAU_POWER) || 14,
+            ceremonyParticipants: parseInt(process.env.ZK_CEREMONY_PARTICIPANTS) || 3,
+            constraintLimit: parseInt(process.env.ZK_CONSTRAINT_LIMIT) || 1000000,
+            enableOptimization: process.env.ZK_ENABLE_CIRCUIT_OPTIMIZATION === 'true',
+            buildParallel: process.env.ZK_BUILD_PARALLEL === 'true',
+            trustedSetupPath: process.env.ZK_TRUSTED_SETUP_PTAU_PATH || path.join(this.circuitsDir, 'pot14_final.ptau')
+        };
     }
 
     getVersion() {
@@ -108,7 +120,7 @@ class CircuitBuilder {
         }
 
         // Check if circuit file exists
-        const circuitFile = path.join(this.circuitsDir, 'access-control.circom');
+        const circuitFile = process.env.ZK_CIRCUIT_PATH || path.join(this.circuitsDir, `${this.zkConfig.circuitName}.circom`);
         if (!fs.existsSync(circuitFile)) {
             throw new Error(`Circuit file not found: ${circuitFile}`);
         }
@@ -119,7 +131,7 @@ class CircuitBuilder {
     async compileCircuits() {
         this.log('Compiling ZK circuits...');
 
-        const circuitFile = path.join(this.circuitsDir, 'access-control.circom');
+        const circuitFile = process.env.ZK_CIRCUIT_PATH || path.join(this.circuitsDir, `${this.zkConfig.circuitName}.circom`);
         const outputPath = this.outputDir;
 
         try {
@@ -132,9 +144,9 @@ class CircuitBuilder {
 
             // Verify compilation outputs
             const requiredFiles = [
-                path.join(outputPath, 'access-control.r1cs'),
-                path.join(outputPath, 'access-control_js', 'access-control.wasm'),
-                path.join(outputPath, 'access-control.sym')
+                path.join(outputPath, `${this.zkConfig.circuitName}.r1cs`),
+                path.join(outputPath, `${this.zkConfig.circuitName}_js`, `${this.zkConfig.circuitName}.wasm`),
+                path.join(outputPath, `${this.zkConfig.circuitName}.sym`)
             ];
 
             for (const file of requiredFiles) {
@@ -153,11 +165,11 @@ class CircuitBuilder {
     async runTrustedSetup() {
         this.log('Running trusted setup ceremony...');
 
-        const ptauFile = path.join(this.circuitsDir, 'pot14_final.ptau');
-        const r1csFile = path.join(this.outputDir, 'access-control.r1cs');
-        const zkeyFile0 = path.join(this.outputDir, 'access-control_0000.zkey');
-        const zkeyFile1 = path.join(this.outputDir, 'access-control_0001.zkey');
-        const vkeyFile = path.join(this.outputDir, 'verification_key.json');
+        const ptauFile = this.zkConfig.trustedSetupPath;
+        const r1csFile = path.join(this.outputDir, `${this.zkConfig.circuitName}.r1cs`);
+        const zkeyFile0 = path.join(this.outputDir, `${this.zkConfig.circuitName}_0000.zkey`);
+        const zkeyFile1 = path.join(this.outputDir, `${this.zkConfig.circuitName}_0001.zkey`);
+        const vkeyFile = process.env.ZK_VERIFICATION_KEY_PATH || path.join(this.outputDir, 'verification_key.json');
 
         try {
             // Check if ptau file exists, generate if not
@@ -199,15 +211,16 @@ class CircuitBuilder {
     }
 
     async generatePowerOfTau() {
-        const ptauDir = this.circuitsDir;
-        const ptau0 = path.join(ptauDir, 'pot14_0000.ptau');
-        const ptau1 = path.join(ptauDir, 'pot14_0001.ptau');
-        const ptauFinal = path.join(ptauDir, 'pot14_final.ptau');
+        const ptauDir = path.dirname(this.zkConfig.trustedSetupPath);
+        const ptauPower = this.zkConfig.ptauPower;
+        const ptau0 = path.join(ptauDir, `pot${ptauPower}_0000.ptau`);
+        const ptau1 = path.join(ptauDir, `pot${ptauPower}_0001.ptau`);
+        const ptauFinal = this.zkConfig.trustedSetupPath;
 
         this.log('Generating Powers of Tau ceremony (this may take several minutes)...');
 
         // New ceremony
-        execSync(`snarkjs powersoftau new bn128 14 "${ptau0}" -v`, {
+        execSync(`snarkjs powersoftau new bn128 ${ptauPower} "${ptau0}" -v`, {
             stdio: 'inherit'
         });
 
@@ -229,7 +242,7 @@ class CircuitBuilder {
     async generateVerifier() {
         this.log('Generating Solidity verifier contract...');
 
-        const zkeyFile = path.join(this.outputDir, 'access-control_0001.zkey');
+        const zkeyFile = process.env.ZK_PROVING_KEY_PATH || path.join(this.outputDir, `${this.zkConfig.circuitName}_0001.zkey`);
         const verifierFile = path.join(this.blockchainDir, 'contracts', 'verifier.sol');
 
         try {
@@ -253,10 +266,10 @@ class CircuitBuilder {
         this.log('Validating build outputs...');
 
         const requiredFiles = [
-            path.join(this.outputDir, 'access-control.r1cs'),
-            path.join(this.outputDir, 'access-control_js', 'access-control.wasm'),
-            path.join(this.outputDir, 'access-control_0001.zkey'),
-            path.join(this.outputDir, 'verification_key.json'),
+            path.join(this.outputDir, `${this.zkConfig.circuitName}.r1cs`),
+            process.env.ZK_WASM_PATH || path.join(this.outputDir, `${this.zkConfig.circuitName}_js`, `${this.zkConfig.circuitName}.wasm`),
+            process.env.ZK_PROVING_KEY_PATH || path.join(this.outputDir, `${this.zkConfig.circuitName}_0001.zkey`),
+            process.env.ZK_VERIFICATION_KEY_PATH || path.join(this.outputDir, 'verification_key.json'),
             path.join(this.blockchainDir, 'contracts', 'verifier.sol')
         ];
 
@@ -292,29 +305,29 @@ class CircuitBuilder {
         };
 
         const inputFile = path.join(this.outputDir, 'test-input.json');
-        const witnessFile = path.join(this.outputDir, 'access-control_js', 'witness.wtns');
-        const proofFile = path.join(this.outputDir, 'access-control_js', 'proof.json');
-        const publicFile = path.join(this.outputDir, 'access-control_js', 'public.json');
+        const witnessFile = path.join(this.outputDir, `${this.zkConfig.circuitName}_js`, 'witness.wtns');
+        const proofFile = path.join(this.outputDir, `${this.zkConfig.circuitName}_js`, 'proof.json');
+        const publicFile = path.join(this.outputDir, `${this.zkConfig.circuitName}_js`, 'public.json');
 
         try {
             // Write test input
             fs.writeFileSync(inputFile, JSON.stringify(testInput, null, 2));
 
             // Generate witness
-            const wasmFile = path.join(this.outputDir, 'access-control_js', 'access-control.wasm');
+            const wasmFile = process.env.ZK_WASM_PATH || path.join(this.outputDir, `${this.zkConfig.circuitName}_js`, `${this.zkConfig.circuitName}.wasm`);
             execSync(`node generate_witness.js "${wasmFile}" "${inputFile}" "${witnessFile}"`, {
-                cwd: path.join(this.outputDir, 'access-control_js'),
+                cwd: path.join(this.outputDir, `${this.zkConfig.circuitName}_js`),
                 stdio: 'inherit'
             });
 
             // Generate proof
-            const zkeyFile = path.join(this.outputDir, 'access-control_0001.zkey');
+            const zkeyFile = process.env.ZK_PROVING_KEY_PATH || path.join(this.outputDir, `${this.zkConfig.circuitName}_0001.zkey`);
             execSync(`snarkjs groth16 prove "${zkeyFile}" "${witnessFile}" "${proofFile}" "${publicFile}"`, {
                 stdio: 'inherit'
             });
 
             // Verify proof
-            const vkeyFile = path.join(this.outputDir, 'verification_key.json');
+            const vkeyFile = process.env.ZK_VERIFICATION_KEY_PATH || path.join(this.outputDir, 'verification_key.json');
             execSync(`snarkjs groth16 verify "${vkeyFile}" "${publicFile}" "${proofFile}"`, {
                 stdio: 'inherit'
             });
@@ -339,15 +352,16 @@ class CircuitBuilder {
         const artifacts = {
             version: this.version,
             buildTimestamp: new Date().toISOString(),
-            circuitName: 'access-control',
+            circuitName: this.zkConfig.circuitName,
             files: {
-                r1cs: 'access-control.r1cs',
-                wasm: 'access-control_js/access-control.wasm',
-                zkey: 'access-control_0001.zkey',
+                r1cs: `${this.zkConfig.circuitName}.r1cs`,
+                wasm: `${this.zkConfig.circuitName}_js/${this.zkConfig.circuitName}.wasm`,
+                zkey: `${this.zkConfig.circuitName}_0001.zkey`,
                 vkey: 'verification_key.json',
                 verifier: '../blockchain/contracts/verifier.sol'
             },
-            checksums: {}
+            checksums: {},
+            config: this.zkConfig
         };
 
         // Calculate checksums for verification

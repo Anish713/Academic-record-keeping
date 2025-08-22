@@ -78,6 +78,18 @@ async function main() {
     JSON.stringify(deploymentInfo, null, 2)
   );
 
+  // Update environment variables with contract addresses
+  try {
+    const { execSync } = require('child_process');
+    execSync(`node ../scripts/update-env-contracts.js update ${network}`, {
+      stdio: 'inherit',
+      cwd: __dirname
+    });
+    console.log("✅ Environment variables updated with contract addresses");
+  } catch (error) {
+    console.warn("⚠️ Failed to update environment variables:", error.message);
+  }
+
   return deploymentInfo.contracts;
 }
 

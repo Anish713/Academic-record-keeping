@@ -17,14 +17,22 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      chainId: 31337,
+    },
+    localhost: {
+      url: process.env.RPC_URL || "http://localhost:8545",
+      chainId: 31337,
+    },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 11155111,
     },
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 5,
     },
   },
   etherscan: {

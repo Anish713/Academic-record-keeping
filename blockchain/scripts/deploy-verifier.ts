@@ -1,4 +1,8 @@
 import { ethers } from "hardhat";
+import * as dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config({ path: "../../.env" });
 
 async function main() {
   console.log("🚀 Deploying ZK Verifier contract...");
@@ -40,11 +44,11 @@ async function main() {
 
   const fs = require('fs');
   const path = require('path');
-  
+
   // Read existing deployment info if it exists
   const deploymentPath = path.join(__dirname, '../deployment-info.json');
   let existingInfo = {};
-  
+
   try {
     if (fs.existsSync(deploymentPath)) {
       existingInfo = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'));
@@ -55,7 +59,7 @@ async function main() {
 
   // Merge with existing info
   const updatedInfo = { ...existingInfo, ...deploymentInfo };
-  
+
   fs.writeFileSync(deploymentPath, JSON.stringify(updatedInfo, null, 2));
   console.log("📝 Deployment info saved to deployment-info.json");
 

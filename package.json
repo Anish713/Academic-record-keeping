@@ -27,7 +27,12 @@
     "validate:zk-pipeline": "node scripts/validate-pipeline.js",
     "generate:verifier": "snarkjs zkey export solidityverifier public/circuits/access-control_0001.zkey blockchain/contracts/verifier.sol",
     "generate:ptau": "cd circuits && npx snarkjs powersoftau new bn128 14 pot14_0000.ptau -v && npx snarkjs powersoftau contribute pot14_0000.ptau pot14_0001.ptau --name='First contribution' -v && npx snarkjs powersoftau prepare phase2 pot14_0001.ptau pot14_final.ptau -v",
-    "clean:circuits": "rm -rf public/circuits circuits/*.zkey circuits/verification_key.json blockchain/contracts/verifier.sol"
+    "clean:circuits": "rm -rf public/circuits circuits/*.zkey circuits/verification_key.json blockchain/contracts/verifier.sol",
+    "env:validate": "node scripts/validate-env.js validate",
+    "env:template": "node scripts/validate-env.js template",
+    "env:update-contracts": "node scripts/update-env-contracts.js update",
+    "env:show-contracts": "node scripts/update-env-contracts.js show",
+    "env:validate-contracts": "node scripts/update-env-contracts.js validate"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
