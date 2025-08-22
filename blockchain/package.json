@@ -7,7 +7,18 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.ts",
+    "deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
+    "build:circuits": "npm run compile:circuits && npm run generate:keys",
+    "compile:circuits": "mkdir -p circuits && mkdir -p ../public/circuits && circom circuits/access-control.circom --r1cs --wasm --sym -o ../public/circuits",
+    "generate:keys": "npm run download:ptau && npm run setup:keys",
+    "download:ptau": "mkdir -p circuits && [ ! -f circuits/pot12_final.ptau ] && npm run generate:ptau || echo 'PTAU file already exists'",
+    "setup:keys": "snarkjs groth16 setup ../public/circuits/access-control.r1cs circuits/pot12_final.ptau ../public/circuits/access-control_0000.zkey && snarkjs zkey contribute ../public/circuits/access-control_0000.zkey ../public/circuits/access-control_0001.zkey --name='First contribution' -v && snarkjs zkey export verificationkey ../public/circuits/access-control_0001.zkey circuits/verification_key.json",
+    "generate:verifier": "snarkjs zkey export solidityverifier ../public/circuits/access-control_0001.zkey contracts/verifier.sol",
+    "generate:ptau": "npx snarkjs powersoftau new bn128 12 circuits/pot12_0000.ptau -v && npx snarkjs powersoftau contribute circuits/pot12_0000.ptau circuits/pot12_0001.ptau --name='First contribution' -v && npx snarkjs powersoftau prepare phase2 circuits/pot12_0001.ptau circuits/pot12_final.ptau -v",
+    "clean:circuits": "rm -rf ../public/circuits circuits/*.ptau circuits/*.json"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +35,9 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
     "bip39": "^3.1.0",
-    "ethers": "^6.14.4"
+    "circomlib": "^2.0.5",
+    "ethers": "^6.14.4",
+    "ffjavascript": "^0.3.1",
+    "snarkjs": "^0.7.5"
   }
 }
