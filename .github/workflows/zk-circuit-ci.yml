@@ -1,0 +1,454 @@
+name: ZK Circuit CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'circuits/**'
+      - 'scripts/build-circuits.js'
+      - 'scripts/trusted-setup.js'
+      - 'scripts/circuit-manager.js'
+      - '.github/workflows/zk-circuit-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'circuits/**'
+      - 'scripts/build-circuits.js'
+      - 'scripts/trusted-setup.js'
+      - 'scripts/circuit-manager.js'
+      - '.github/workflows/zk-circuit-ci.yml'
+
+env:
+  NODE_VERSION: '18'
+  CIRCUIT_NAME: 'access-control'
+
+jobs:
+  circuit-validation:
+    name: Circuit Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd blockchain && npm ci
+        
+    - name: Install ZK tools
+      run: |
+        # Install circom
+        wget https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
+        chmod +x circom-linux-amd64
+        sudo mv circom-linux-amd64 /usr/local/bin/circom
+        
+        # Verify installation
+        circom --version
+        npx snarkjs --version
+        
+    - name: Validate circuit syntax
+      run: |
+        echo "🔍 Validating circuit syntax..."
+        cd circuits
+        circom access-control.circom --r1cs --wasm --sym -o ../public/circuits --dry-run
+        
+    - name: Check circuit constraints
+      run: |
+        echo "📊 Analyzing circuit constraints..."
+        cd circuits
+        circom access-control.circom --r1cs --wasm --sym -o ../public/circuits -l ../node_modules
+        
+        # Check constraint count
+        CONSTRAINTS=$(npx snarkjs r1cs info ../public/circuits/access-control.r1cs | grep "# of Constraints" | awk '{print $4}')
+        echo "Circuit has $CONSTRAINTS constraints"
+        
+        # Fail if too many constraints (adjust threshold as needed)
+        if [ "$CONSTRAINTS" -gt 1000000 ]; then
+          echo "❌ Too many constraints: $CONSTRAINTS (max: 1,000,000)"
+          exit 1
+        fi
+        
+    - name: Upload circuit artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: circuit-artifacts-${{ github.sha }}
+        path: |
+          public/circuits/access-control.r1cs
+          public/circuits/access-control_js/
+          public/circuits/access-control.sym
+        retention-days: 7
+
+  trusted-setup:
+    name: Trusted Setup Test
+    runs-on: ubuntu-latest
+    needs: circuit-validation
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd blockchain && npm ci
+        
+    - name: Install ZK tools
+      run: |
+        wget https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
+        chmod +x circom-linux-amd64
+        sudo mv circom-linux-amd64 /usr/local/bin/circom
+        
+    - name: Download circuit artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: circuit-artifacts-${{ github.sha }}
+        path: public/circuits/
+        
+    - name: Run trusted setup
+      run: |
+        echo "🔐 Running trusted setup ceremony..."
+        node scripts/trusted-setup.js --quick
+        
+    - name: Verify setup outputs
+      run: |
+        echo "✅ Verifying trusted setup outputs..."
+        
+        # Check required files exist
+        files=(
+          "public/circuits/access-control_0001.zkey"
+          "public/circuits/verification_key.json"
+          "blockchain/contracts/verifier.sol"
+        )
+        
+        for file in "${files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Missing file: $file"
+            exit 1
+          fi
+          echo "✓ Found: $file"
+        done
+        
+    - name: Upload setup artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: setup-artifacts-${{ github.sha }}
+        path: |
+          public/circuits/access-control_0001.zkey
+          public/circuits/verification_key.json
+          public/circuits/ceremony-info.json
+          blockchain/contracts/verifier.sol
+        retention-days: 7
+
+  circuit-testing:
+    name: Circuit Testing
+    runs-on: ubuntu-latest
+    needs: trusted-setup
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd blockchain && npm ci
+        
+    - name: Install ZK tools
+      run: |
+        wget https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
+        chmod +x circom-linux-amd64
+        sudo mv circom-linux-amd64 /usr/local/bin/circom
+        
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: circuit-artifacts-${{ github.sha }}
+        path: public/circuits/
+        
+    - name: Download setup artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: setup-artifacts-${{ github.sha }}
+        path: ./
+        
+    - name: Test circuit functionality
+      run: |
+        echo "🧪 Testing circuit functionality..."
+        
+        # Create test input
+        cat > test-input.json << EOF
+        {
+          "userAddress": "123456789",
+          "recordId": "1",
+          "accessKey": "987654321",
+          "timestamp": "1640995200",
+          "pathElements": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+          "pathIndices": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+          "recordHash": "456789123",
+          "merkleRoot": "111111111"
+        }
+        EOF
+        
+        # Generate witness
+        cd public/circuits/access-control_js
+        node generate_witness.js access-control.wasm ../../../test-input.json witness.wtns
+        
+        # Generate proof
+        npx snarkjs groth16 prove ../access-control_0001.zkey witness.wtns proof.json public.json
+        
+        # Verify proof
+        npx snarkjs groth16 verify ../verification_key.json public.json proof.json
+        
+        echo "✅ Circuit test passed!"
+        
+    - name: Test multiple inputs
+      run: |
+        echo "🔄 Testing circuit with multiple inputs..."
+        
+        # Test with different valid inputs
+        inputs=(
+          '{"userAddress": "111111111", "recordId": "2", "accessKey": "111111111", "timestamp": "1640995200", "pathElements": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"], "pathIndices": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"], "recordHash": "222222222", "merkleRoot": "333333333"}'
+          '{"userAddress": "999999999", "recordId": "3", "accessKey": "888888888", "timestamp": "1640995300", "pathElements": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"], "pathIndices": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"], "recordHash": "777777777", "merkleRoot": "666666666"}'
+        )
+        
+        cd public/circuits/access-control_js
+        
+        for i in "${!inputs[@]}"; do
+          echo "Testing input $((i+1))..."
+          echo "${inputs[$i]}" > "test-input-$i.json"
+          
+          node generate_witness.js access-control.wasm "test-input-$i.json" "witness-$i.wtns"
+          npx snarkjs groth16 prove ../access-control_0001.zkey "witness-$i.wtns" "proof-$i.json" "public-$i.json"
+          npx snarkjs groth16 verify ../verification_key.json "public-$i.json" "proof-$i.json"
+          
+          echo "✅ Input $((i+1)) passed"
+        done
+
+  contract-integration:
+    name: Smart Contract Integration
+    runs-on: ubuntu-latest
+    needs: circuit-testing
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd blockchain && npm ci
+        
+    - name: Download setup artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: setup-artifacts-${{ github.sha }}
+        path: ./
+        
+    - name: Compile contracts
+      run: |
+        echo "🔨 Compiling smart contracts..."
+        cd blockchain
+        npx hardhat compile
+        
+    - name: Test verifier contract
+      run: |
+        echo "🧪 Testing verifier contract..."
+        cd blockchain
+        npx hardhat test test/Verifier.ts
+        
+    - name: Test ZK integration
+      run: |
+        echo "🔗 Testing ZK integration..."
+        cd blockchain
+        npx hardhat test test/ZKAccessControl.ts
+
+  artifact-management:
+    name: Artifact Management
+    runs-on: ubuntu-latest
+    needs: [circuit-testing, contract-integration]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: setup-artifacts-${{ github.sha }}
+        path: ./
+        
+    - name: Initialize circuit manager
+      run: |
+        echo "📦 Initializing circuit artifact manager..."
+        node scripts/circuit-manager.js version ${{ env.CIRCUIT_NAME }}
+        
+    - name: Verify artifacts
+      run: |
+        echo "✅ Verifying circuit artifacts..."
+        node scripts/circuit-manager.js verify
+        
+    - name: Upload versioned artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: versioned-artifacts-${{ github.sha }}
+        path: |
+          public/circuits/versions/
+          public/circuits/circuit-manifest.json
+        retention-days: 30
+
+  performance-analysis:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    needs: circuit-testing
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd blockchain && npm ci
+        
+    - name: Install ZK tools
+      run: |
+        wget https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
+        chmod +x circom-linux-amd64
+        sudo mv circom-linux-amd64 /usr/local/bin/circom
+        
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: setup-artifacts-${{ github.sha }}
+        path: ./
+        
+    - name: Analyze circuit performance
+      run: |
+        echo "📊 Analyzing circuit performance..."
+        
+        # Get circuit info
+        npx snarkjs r1cs info public/circuits/access-control.r1cs > circuit-info.txt
+        cat circuit-info.txt
+        
+        # Extract metrics
+        CONSTRAINTS=$(grep "# of Constraints" circuit-info.txt | awk '{print $4}')
+        VARIABLES=$(grep "# of Private Inputs" circuit-info.txt | awk '{print $5}')
+        PUBLIC_INPUTS=$(grep "# of Public Inputs" circuit-info.txt | awk '{print $5}')
+        
+        echo "Circuit Metrics:"
+        echo "- Constraints: $CONSTRAINTS"
+        echo "- Variables: $VARIABLES" 
+        echo "- Public Inputs: $PUBLIC_INPUTS"
+        
+        # Performance benchmarks
+        echo "🏃 Running performance benchmarks..."
+        
+        # Time proof generation
+        cd public/circuits/access-control_js
+        
+        cat > ../../../bench-input.json << EOF
+        {
+          "userAddress": "123456789",
+          "recordId": "1", 
+          "accessKey": "987654321",
+          "timestamp": "1640995200",
+          "pathElements": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+          "pathIndices": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+          "recordHash": "456789123",
+          "merkleRoot": "111111111"
+        }
+        EOF
+        
+        # Benchmark witness generation
+        echo "Benchmarking witness generation..."
+        time node generate_witness.js access-control.wasm ../../../bench-input.json bench-witness.wtns
+        
+        # Benchmark proof generation  
+        echo "Benchmarking proof generation..."
+        time npx snarkjs groth16 prove ../access-control_0001.zkey bench-witness.wtns bench-proof.json bench-public.json
+        
+        # Benchmark proof verification
+        echo "Benchmarking proof verification..."
+        time npx snarkjs groth16 verify ../verification_key.json bench-public.json bench-proof.json
+        
+    - name: Generate performance report
+      run: |
+        echo "📋 Generating performance report..."
+        
+        cat > performance-report.md << EOF
+        # ZK Circuit Performance Report
+        
+        **Build**: ${{ github.sha }}
+        **Date**: $(date -u)
+        **Circuit**: ${{ env.CIRCUIT_NAME }}
+        
+        ## Circuit Metrics
+        
+        $(cat circuit-info.txt)
+        
+        ## Performance Notes
+        
+        - Circuit compilation: ✅ Passed
+        - Trusted setup: ✅ Passed  
+        - Proof generation: ✅ Passed
+        - Proof verification: ✅ Passed
+        
+        ## Recommendations
+        
+        - Monitor constraint count growth
+        - Consider circuit optimizations if constraints > 500K
+        - Benchmark proof generation time in production environment
+        
+        EOF
+        
+        cat performance-report.md
+        
+    - name: Upload performance report
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-report-${{ github.sha }}
+        path: |
+          performance-report.md
+          circuit-info.txt
+        retention-days: 30
