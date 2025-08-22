@@ -6,5 +6,12 @@
     "RecordStorage": "0x8d4b6Bc4b7C219a71DF81cD41D94bBCFF86e010C",
     "AcademicRecords": "0x1987a2339aCb20C60Ab3E13a590C457F72570350",
     "StudentManagement": "0xdeB304738Bb9a9b28Cc4C12AFd2bbC1F8807657D"
+  },
+  "verifier": {
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "contractName": "Groth16Verifier",
+    "deployedAt": "2025-08-22T02:00:26.510Z",
+    "network": "localhost",
+    "chainId": "31337"
   }
 }
