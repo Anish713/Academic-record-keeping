@@ -99,6 +99,9 @@ export interface SecureRecord extends Record {
     hasZKAccess: boolean;
     documentUrl?: string;
     accessLevel: 'owner' | 'shared' | 'university' | 'admin' | 'none';
+    issueDate?: string;
+    verified?: boolean;
+    issuer?: string;
 }
 
 // Information about shared records

@@ -11,5 +11,11 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src')
         }
+    },
+    define: {
+        global: 'globalThis',
+    },
+    esbuild: {
+        jsxInject: `import React from 'react'`
     }
 });

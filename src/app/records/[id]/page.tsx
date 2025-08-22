@@ -8,6 +8,8 @@ import { blockchainService } from "@/services/blockchain";
 import { getGatewayUrl } from "@/lib/pinata";
 import { truncateAddress } from "@/lib/utils";
 import { getRecordTypeName } from "@/types/records";
+import { SecureRecord } from "@/types/zkTypes";
+import { zkService } from "@/services/zkService";
 
 /**
  * Displays detailed information about an academic record and provides sharing controls for the record owner.
@@ -17,11 +19,19 @@ import { getRecordTypeName } from "@/types/records";
 export default function RecordDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [record, setRecord] = useState<any>(null);
+  const [record, setRecord] = useState<SecureRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [connectedAddress, setConnectedAddress] = useState("");
+
+  // ZK verification states
+  const [zkLoading, setZkLoading] = useState(false);
+  const [zkError, setZkError] = useState("");
+  const [documentAccess, setDocumentAccess] = useState<{
+    hasAccess: boolean;
+    documentUrl?: string;
+  }>({ hasAccess: false });
 
   // Sharing functionality
   const [shareAddress, setShareAddress] = useState("");
@@ -57,6 +67,7 @@ export default function RecordDetailPage() {
 
       setLoading(true);
       setError("");
+      setZkError("");
 
       try {
         const recordIdParam = params.id as string;
@@ -65,36 +76,27 @@ export default function RecordDetailPage() {
         const parsedRecordId = parseInt(recordIdParam, 10);
         if (isNaN(parsedRecordId)) throw new Error("Invalid record ID");
 
-        const recordData = await blockchainService.getRecord(parsedRecordId);
-        console.log("Fetched record data:", recordData);
+        // Use ZK-enhanced record retrieval
+        const secureRecord = await blockchainService.getRecordWithZKAccess(parsedRecordId);
+        console.log("Fetched secure record data:", secureRecord);
 
-        if (!recordData) {
+        if (!secureRecord) {
           setError("Record not found");
           console.error("Record not found for recordId:", parsedRecordId);
           setLoading(false);
           return;
         }
 
-        const formattedRecord = {
-          id: parsedRecordId,
-          studentName: recordData.studentName,
-          studentId: recordData.studentId,
-          studentAddress: recordData.studentAddress,
-          universityName:
-            recordData.universityName ||
-            (await blockchainService.getUniversityName(recordData.university)),
-          recordType: getRecordTypeName(recordData.recordType),
-          issueDate: new Date(recordData.timestamp * 1000).toLocaleDateString(),
-          verified: recordData.isValid,
-          issuer: recordData.university,
-          issuerTruncated: truncateAddress(recordData.university),
-          documentUrl: getGatewayUrl(recordData.ipfsHash),
-          ipfsHash: recordData.ipfsHash,
-        };
+        setRecord(secureRecord);
 
-        setRecord(formattedRecord);
+        // Set document access based on ZK verification
+        setDocumentAccess({
+          hasAccess: secureRecord.hasZKAccess,
+          documentUrl: secureRecord.documentUrl
+        });
 
-        if (recordData.studentId === connectedAddress) {
+        // Load shared addresses if user owns the record
+        if (secureRecord.accessLevel === 'owner') {
           await loadSharedAddresses(parsedRecordId);
         }
       } catch (err) {
@@ -118,6 +120,51 @@ export default function RecordDetailPage() {
     } catch (err) {
       console.error("Error loading shared addresses:", err);
     }
+  };
+
+  /**
+   * Generate ZK proof and verify document access
+   */
+  const handleViewDocument = async () => {
+    if (!record) return;
+
+    setZkLoading(true);
+    setZkError("");
+
+    try {
+      // Generate ZK proof and verify access
+      const ipfsHash = await zkService.verifyDocumentAccess(record.id);
+      
+      if (ipfsHash) {
+        const documentUrl = getGatewayUrl(ipfsHash);
+        setDocumentAccess({
+          hasAccess: true,
+          documentUrl
+        });
+        
+        // Open document in new tab
+        window.open(documentUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        setZkError("Access denied. You don't have permission to view this document.");
+        setDocumentAccess({ hasAccess: false });
+      }
+    } catch (err: any) {
+      console.error("ZK verification failed:", err);
+      setZkError(
+        err.message || "Failed to verify document access. Please try again."
+      );
+      setDocumentAccess({ hasAccess: false });
+    } finally {
+      setZkLoading(false);
+    }
+  };
+
+  /**
+   * Check if user can access the document
+   */
+  const canAccessDocument = (): boolean => {
+    if (!record) return false;
+    return record.hasZKAccess || record.accessLevel === 'owner';
   };
 
   const handleShare = async (e: React.FormEvent) => {
@@ -174,7 +221,7 @@ export default function RecordDetailPage() {
 
   const isOwnRecord = () => {
     if (!record || !connectedAddress) return false;
-    return record.studentAddress === connectedAddress;
+    return record.accessLevel === 'owner';
   };
 
   return (
@@ -260,22 +307,22 @@ export default function RecordDetailPage() {
                   <p className="font-medium">
                     <span
                       className={`px-2 py-1 rounded-md text-xs font-medium ${
-                        record.recordType === "Transcript"
+                        getRecordTypeName(record.recordType) === "Transcript"
                           ? "bg-teal-100 text-teal-800"
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {record.recordType}
+                      {getRecordTypeName(record.recordType)}
                     </span>
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Issue Date</p>
-                  <p className="font-medium">{record.issueDate}</p>
+                  <p className="font-medium">{record.issueDate || new Date(record.timestamp * 1000).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Issuer</p>
-                  <p className="font-medium">{record.issuerTruncated}</p>
+                  <p className="font-medium">{truncateAddress(record.issuer || record.university)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Student Address</p>
@@ -283,21 +330,34 @@ export default function RecordDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Document</p>
-                  <a
-                    href={record.documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-blue-600 hover:underline"
-                  >
-                    View Document
-                  </a>
+                  {canAccessDocument() ? (
+                    <Button
+                      variant="outline"
+                      onClick={handleViewDocument}
+                      disabled={zkLoading}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      {zkLoading ? (
+                        <>
+                          <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-600 mr-2"></div>
+                          Verifying Access...
+                        </>
+                      ) : (
+                        "View Document"
+                      )}
+                    </Button>
+                  ) : (
+                    <p className="font-medium text-gray-500">
+                      Access Restricted
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">
                     Verification Status
                   </p>
                   <p className="font-medium flex items-center">
-                    {record.verified ? (
+                    {(record.verified ?? record.isValid) ? (
                       <>
                         <svg
                           className="h-5 w-5 text-green-500 mr-1"
@@ -337,8 +397,121 @@ export default function RecordDetailPage() {
               </div>
             </div>
 
+            {/* ZK Access Status and Error Messages */}
+            {zkError && (
+              <div className="p-6 border-t border-gray-200">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <svg
+                      className="h-5 w-5 text-red-500 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div>
+                      <h3 className="text-sm font-medium text-red-800">
+                        Document Access Error
+                      </h3>
+                      <p className="text-sm text-red-700 mt-1">{zkError}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleViewDocument}
+                      disabled={zkLoading}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Access Level Information */}
+            {record && (
+              <div className="p-6 border-t border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                  Access Information
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Your Access Level</p>
+                      <p className="font-medium capitalize text-gray-900">
+                        {record.accessLevel}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      {record.hasZKAccess ? (
+                        <>
+                          <svg
+                            className="h-5 w-5 text-green-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m5.5-2a11 11 0 11-18 0 11 11 0 0118 0z"
+                            />
+                          </svg>
+                          <span className="text-sm text-green-700 font-medium">
+                            ZK Access Verified
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="h-5 w-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span className="text-sm text-red-700 font-medium">
+                            No ZK Access
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {record.accessLevel !== 'owner' && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-xs text-gray-500">
+                        {record.accessLevel === 'shared' 
+                          ? 'This record has been shared with you by the owner.'
+                          : record.accessLevel === 'university'
+                          ? 'You have access as the issuing university.'
+                          : record.accessLevel === 'admin'
+                          ? 'You have administrative access to this record.'
+                          : 'You do not have access to view this document.'
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Sharing section - only visible to the record owner */}
-            {isOwnRecord() && (
+            {record && record.accessLevel === 'owner' && (
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Share Your Record
