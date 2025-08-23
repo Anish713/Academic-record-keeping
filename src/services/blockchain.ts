@@ -16,7 +16,7 @@ class BlockchainService {
   private contract: ethers.Contract | null = null;
   private studentManagementContract: ethers.Contract | null = null;
   private contractAddress: string =
-    process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
+    process.env.NEXT_PUBLIC_ACADEMIC_RECORDS_CONTRACT_ADDRESS || "";
   private studentManagementAddress: string =
     process.env.NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS || "";
 
