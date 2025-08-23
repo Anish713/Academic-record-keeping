@@ -28,8 +28,9 @@ async function compileCircuit(circuitName) {
     }
 
     try {
-        // Compile circuit to R1CS and WASM
-        const compileCmd = `circom ${inputPath} --r1cs --wasm --sym --c -o ${outputDir}`;
+        // Compile circuit to R1CS and WASM with circomlib include path
+        const circomlibPath = path.join(CIRCUITS_DIR, 'node_modules');
+        const compileCmd = `circom ${inputPath} --r1cs --wasm --sym --c -l ${circomlibPath} -o ${outputDir}`;
         console.log(`Running: ${compileCmd}`);
 
         const { stdout, stderr } = await execAsync(compileCmd);
