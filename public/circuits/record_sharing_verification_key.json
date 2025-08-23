@@ -1,0 +1,73 @@
+{
+  "protocol": "groth16",
+  "curve": "bn128",
+  "nPublic": 2,
+  "vk_alpha_1": [
+    "0",
+    "0",
+    "0"
+  ],
+  "vk_beta_2": [
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ]
+  ],
+  "vk_gamma_2": [
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ]
+  ],
+  "vk_delta_2": [
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0"
+    ]
+  ],
+  "vk_alphabeta_12": [],
+  "IC": [
+    [
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "0"
+    ]
+  ],
+  "type": "development",
+  "circuit": "record_sharing",
+  "warning": "This is a development key - DO NOT USE IN PRODUCTION"
+}

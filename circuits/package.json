@@ -1,0 +1,29 @@
+{
+    "name": "zkp-circuits",
+    "version": "1.0.0",
+    "description": "Zero Knowledge Proof circuits for academic records access control",
+    "main": "index.js",
+    "scripts": {
+        "compile": "node scripts/compile.js",
+        "generate-keys": "node scripts/generate-keys.js",
+        "generate-keys-dev": "node scripts/generate-keys-dev.js",
+        "test": "node scripts/test-circuits.js",
+        "build": "npm run compile && npm run generate-keys",
+        "build-dev": "npm run compile && npm run generate-keys-dev",
+        "dev": "npm run compile && npm run test"
+    },
+    "keywords": [
+        "zkp",
+        "circom",
+        "snarkjs",
+        "access-control"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "snarkjs": "^0.7.4",
+        "circomlib": "^2.0.5",
+        "ffjavascript": "^0.3.0"
+    },
+    "devDependencies": {}
+}
