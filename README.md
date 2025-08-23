@@ -93,7 +93,7 @@ PINATA_API_SECRET_KEY=YOUR_PINATA_API_SECRET_KEY
 NEXT_PUBLIC_PINATA_GATEWAY_URL=https://gateway.pinata.cloud
 
 # Deployed Smart Contract Addresses (Update after deployment)
-NEXT_PUBLIC_CONTRACT_ADDRESS=YOUR_ACADEMIC_RECORDS_CONTRACT_ADDRESS
+NEXT_PUBLIC_ACADEMIC_RECORDS_CONTRACT_ADDRESS=YOUR_ACADEMIC_RECORDS_CONTRACT_ADDRESS
 NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS=YOUR_STUDENT_MANAGEMENT_CONTRACT_ADDRESS
 ```
 
@@ -107,7 +107,7 @@ npx hardhat compile
 npx hardhat run scripts/deploy.ts --network localhost # or your chosen network
 ```
 
-After successful deployment, update the `NEXT_PUBLIC_CONTRACT_ADDRESS` and `NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS` in your root `.env.local` file with the deployed addresses.
+After successful deployment, update the `NEXT_PUBLIC_ACADEMIC_RECORDS_CONTRACT_ADDRESS` and `NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS` in your root `.env.local` file with the deployed addresses.
 
 ### 5. Run the Application
 
