@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { truncateAddress } from "@/lib/utils";
 import { blockchainService } from "@/services/blockchain";
 import { RecordItem, getRecordTypeName } from "@/types/records";
+import ZKDebugPanel from "@/components/debug/ZKDebugPanel";
 
 /**
  * Displays the university dashboard for authenticated university users, showing summary statistics and a table of recent academic records.
@@ -77,23 +78,29 @@ export default function DashboardPage() {
         // Use ZK-enhanced university records method
         const secureRecords = await blockchainService.getUniversityRecordsWithZKAccess();
 
-        const recordsData = secureRecords.map((record) => ({
-          id: record.id.toString(),
-          studentName: record.studentName,
-          type: getRecordTypeName(record.recordType),
-          dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
-          hasZKAccess: record.hasZKAccess,
-          accessLevel: record.accessLevel,
-          documentUrl: record.documentUrl,
-          verified: record.verified || false,
-          issuer: record.issuer || universityName
-        }));
+        const recordsData = secureRecords.map((record) => {
+          console.log(`Record ${record.id}: hasZKAccess=${record.hasZKAccess}, accessLevel=${record.accessLevel}`);
+          return {
+            id: record.id.toString(),
+            studentName: record.studentName,
+            type: getRecordTypeName(record.recordType),
+            dateIssued: new Date(record.timestamp * 1000).toLocaleDateString(),
+            hasZKAccess: record.hasZKAccess,
+            accessLevel: record.accessLevel,
+            documentUrl: record.documentUrl,
+            verified: record.verified || false,
+            issuer: record.issuer || universityName
+          };
+        });
 
         setRecords(recordsData);
 
         // Calculate ZK statistics
         const zkProtectedCount = recordsData.filter(r => r.hasZKAccess).length;
         const legacyCount = recordsData.filter(r => !r.hasZKAccess).length;
+        
+        console.log(`ZK Statistics: Total=${recordsData.length}, ZK Protected=${zkProtectedCount}, Legacy=${legacyCount}`);
+        console.log('ZK Service Status:', blockchainService.getZKStatus());
         
         setZkStats({
           totalRecords: recordsData.length,
@@ -357,6 +364,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <ZKDebugPanel />
     </MainLayout>
   );
 }

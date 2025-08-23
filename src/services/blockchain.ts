@@ -79,6 +79,19 @@ class BlockchainService {
       await zkService.init();
       this.zkInitialized = true;
       console.log("ZK service initialized successfully");
+
+      // Test ZK contract connectivity
+      try {
+        const currentAddress = await this.getCurrentAddress();
+        console.log("Testing ZK contract connectivity...");
+
+        // Test a simple contract call to verify it's working
+        const testRecords = await zkService.getUserAccessibleRecords();
+        console.log(`ZK contract test successful. User has access to ${testRecords.length} records.`);
+      } catch (testError) {
+        console.warn("ZK contract test failed, but circuits are loaded:", testError);
+        // Don't disable ZK entirely, but log the issue
+      }
     } catch (error) {
       console.warn("ZK service initialization failed, falling back to legacy access:", error);
       this.zkInitialized = false;
@@ -588,17 +601,41 @@ class BlockchainService {
         secureRecord.accessLevel = 'shared';
       }
 
+      // For record owners, grant automatic ZK access when ZK service is initialized
+      if (this.zkInitialized && secureRecord.accessLevel === 'owner') {
+        console.log(`Record ${recordId} owner ${currentAddress} gets automatic ZK access`);
+        secureRecord.hasZKAccess = true;
+        secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
+        return secureRecord;
+      }
+
       // Try ZK access if service is initialized
       if (this.zkInitialized) {
         try {
           let ipfsHash: string | null = null;
 
-          // Use specialized university access for university users
+          console.log(`Attempting ZK access for record ${recordId}, access level: ${secureRecord.accessLevel}`);
+
+          // For university users, check if they issued the record (they should have automatic access)
           if (secureRecord.accessLevel === 'university') {
-            ipfsHash = await zkService.verifyUniversityDocumentAccess(recordId, currentAddress, record);
+            console.log(`Using university ZK access for record ${recordId}`);
+
+            // Check if university issued this record (automatic access)
+            if (record.universityAddress?.toLowerCase() === currentAddress.toLowerCase()) {
+              console.log(`University ${currentAddress} issued record ${recordId}, granting ZK access`);
+              secureRecord.hasZKAccess = true;
+              secureRecord.documentUrl = getGatewayUrl(record.ipfsHash);
+              return secureRecord; // Skip ZK proof generation for university-issued records
+            } else {
+              // Try ZK contract access for records from other universities
+              ipfsHash = await zkService.verifyUniversityDocumentAccess(recordId, currentAddress, record);
+            }
           } else {
             // Use regular ZK access for other users
+            console.log(`Checking regular ZK access for record ${recordId}`);
             const hasAccess = await zkService.hasAccessToRecord(recordId);
+            console.log(`ZK access check result for record ${recordId}: ${hasAccess}`);
+
             if (hasAccess) {
               ipfsHash = await zkService.verifyDocumentAccess(recordId, record);
             }
@@ -608,9 +645,21 @@ class BlockchainService {
             secureRecord.hasZKAccess = true;
             secureRecord.ipfsHash = ipfsHash;
             secureRecord.documentUrl = getGatewayUrl(ipfsHash);
+            console.log(`ZK access successful for record ${recordId}`);
+          } else {
+            console.log(`ZK access returned no IPFS hash for record ${recordId}`);
           }
         } catch (zkError) {
           console.warn(`ZK access verification failed for record ${recordId}:`, zkError);
+
+          // Log more details about the error
+          if (zkError instanceof Error) {
+            console.warn("ZK error details:", {
+              name: zkError.name,
+              message: zkError.message,
+              stack: zkError.stack
+            });
+          }
 
           // Use fallback service for graceful degradation
           try {
@@ -1026,6 +1075,23 @@ class BlockchainService {
   }
 
   /**
+   * Get detailed ZK service status for debugging
+   */
+  getZKStatus(): {
+    initialized: boolean;
+    contractAddress: string;
+    circuitsLoaded: boolean;
+    lastError?: string;
+  } {
+    return {
+      initialized: this.zkInitialized,
+      contractAddress: process.env.NEXT_PUBLIC_ZK_CONTRACT_ADDRESS || 'Not configured',
+      circuitsLoaded: this.zkInitialized, // If ZK is initialized, circuits are loaded
+      lastError: this.zkInitialized ? undefined : 'ZK service failed to initialize'
+    };
+  }
+
+  /**
    * Get ZK service instance for advanced operations
    */
   getZKService() {
@@ -1033,6 +1099,52 @@ class BlockchainService {
       throw new Error('ZK service not initialized');
     }
     return zkService;
+  }
+
+  /**
+   * Enhanced record unsharing with ZK access control
+   */
+  async unshareRecordWithZK(
+    recordId: number,
+    sharedWithAddress: string
+  ): Promise<void> {
+    this.ensureContract();
+
+    // Validate inputs
+    if (!ethers.isAddress(sharedWithAddress)) {
+      throw new Error('Invalid shared address');
+    }
+
+    const currentAddress = await this.getCurrentAddress();
+    const record = await this.getRecord(recordId);
+
+    // Verify the current user owns the record
+    if (record.studentAddress.toLowerCase() !== currentAddress.toLowerCase()) {
+      throw new Error('Only record owner can unshare records');
+    }
+
+    try {
+      // Call the contract unshare method
+      const tx = await this.contract!.unshareRecord(recordId, sharedWithAddress);
+      await tx.wait();
+
+      console.log(`Successfully unshared record ${recordId} from ${sharedWithAddress}`);
+    } catch (error) {
+      console.error(`Failed to unshare record ${recordId} with ZK:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get ZK service status for debugging
+   */
+  getZKStatus() {
+    return {
+      initialized: this.zkInitialized,
+      contractAddress: process.env.NEXT_PUBLIC_ZK_CONTRACT_ADDRESS || 'Not configured',
+      circuitsLoaded: this.zkInitialized,
+      lastError: undefined // Could be enhanced to track last error
+    };
   }
 }
 

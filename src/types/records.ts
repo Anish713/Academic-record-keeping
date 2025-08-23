@@ -110,6 +110,7 @@ export interface Record {
   studentId: string;
   studentAddress: string;
   universityName: string;
+  universityAddress?: string; // Address of the university that issued the record
   recordType: number;
   ipfsHash: string;
   timestamp: number;

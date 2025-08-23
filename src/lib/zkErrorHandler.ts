@@ -51,6 +51,9 @@ export interface ErrorContext {
         initialized: boolean;
         circuitLoaded: boolean;
         contractConnected: boolean;
+        contractAddress?: string;
+        provingKeyLoaded?: boolean;
+        verificationKeyLoaded?: boolean;
     };
 }
 
@@ -81,7 +84,9 @@ export const USER_FRIENDLY_MESSAGES: Record<ZKErrorType, string> = {
     [ZKErrorType.WALLET_NOT_CONNECTED]:
         'Please connect your wallet to access this document.',
     [ZKErrorType.INSUFFICIENT_PERMISSIONS]:
-        'You don\'t have sufficient permissions to perform this action.'
+        'You don\'t have sufficient permissions to perform this action.',
+    [ZKErrorType.INVALID_INPUT]:
+        'Invalid input provided. Please check your data and try again.'
 };
 
 // Error severity mapping
@@ -98,7 +103,8 @@ export const ERROR_SEVERITY_MAP: Record<ZKErrorType, ErrorSeverity> = {
     [ZKErrorType.TIMESTAMP_EXPIRED]: ErrorSeverity.LOW,
     [ZKErrorType.NETWORK_ERROR]: ErrorSeverity.MEDIUM,
     [ZKErrorType.WALLET_NOT_CONNECTED]: ErrorSeverity.LOW,
-    [ZKErrorType.INSUFFICIENT_PERMISSIONS]: ErrorSeverity.LOW
+    [ZKErrorType.INSUFFICIENT_PERMISSIONS]: ErrorSeverity.LOW,
+    [ZKErrorType.INVALID_INPUT]: ErrorSeverity.LOW
 };
 
 /**
@@ -140,10 +146,11 @@ export class ZKErrorHandler {
                 // Log the error
                 const zkError = this.normalizeError(error);
                 const fullContext: ErrorContext = {
-                    ...context,
+                    operation: context.operation || 'unknown_operation',
                     timestamp: Date.now(),
                     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
-                    networkInfo: this.getNetworkInfo()
+                    networkInfo: this.getNetworkInfo(),
+                    ...context
                 };
 
                 this.logError(zkError, fullContext);
