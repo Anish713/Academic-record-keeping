@@ -1,56 +1,56 @@
 {
   "network": "sepolia",
   "chainId": 11155111,
-  "timestamp": "2025-08-22T13:47:55.763Z",
+  "timestamp": "2025-08-23T09:38:41.061Z",
   "deployer": "0xC0871d41A0b822D5FB9D064aE1774bfCBeE58dc6",
-  "totalGasUsed": 9286186,
+  "totalGasUsed": 9286174,
   "contracts": {
     "verifier": {
       "contractName": "Groth16Verifier",
-      "address": "0xa35BB07Fc18C1dDEB7Fb1292409Ce999727746cc",
-      "transactionHash": "0x5cdbb17d280e7a70474d83b0608862180c1a81e1e6d62f3ecb1c5e7a8bdf099d",
-      "blockNumber": 9040026,
+      "address": "0x003c0e18374ee08f1e747EAE8D4672d0570f22E3",
+      "transactionHash": "0x6bce4d2bafb361b09a21f4429d1c6d96eeaf9b02c346b6cafa8b67a5481c41f0",
+      "blockNumber": 9045925,
       "gasUsed": 364487,
-      "deployedAt": "2025-08-22T13:47:14.320Z",
+      "deployedAt": "2025-08-23T09:38:02.966Z",
       "verified": true
     },
     "zkAccessControl": {
       "contractName": "ZKAccessControl",
-      "address": "0x3D1148d2066c12DD718A54F05d16beD7a837a920",
-      "transactionHash": "0x8ddbf9873548d62e80ce9f851e860538915f96a2a8e49b9eb05aa23fffa0a37d",
-      "blockNumber": 9040027,
-      "gasUsed": 3046234,
-      "deployedAt": "2025-08-22T13:47:27.388Z",
+      "address": "0x54082ACE0dE80b8533e006be5400cBdA4bCD9D6A",
+      "transactionHash": "0x0b669b3523a317195a8d572d3e775d49c506cde996689646d1e76d1c26e62f3f",
+      "blockNumber": 9045926,
+      "gasUsed": 3046222,
+      "deployedAt": "2025-08-23T09:38:14.961Z",
       "verified": true
     },
     "recordStorage": {
       "contractName": "RecordStorage",
-      "address": "0x5Ff61D43ACf541F035086578Bad4fbF6D2619250",
-      "transactionHash": "0x9c983383d949484599e2c86ef62b27bdcd9d0d3e8fc7794961aecaeea7b588e5",
-      "blockNumber": 9040028,
+      "address": "0x3eAce51A5db37F98cFF246E51bFA320318F96064",
+      "transactionHash": "0x428b8123679ceba6ceda295fe9b5fb05a23d92d22335f60645fdbd67f9b6154d",
+      "blockNumber": 9045927,
       "gasUsed": 1095423,
-      "deployedAt": "2025-08-22T13:47:38.448Z",
+      "deployedAt": "2025-08-23T09:38:26.601Z",
       "verified": true
     },
     "academicRecords": {
       "contractName": "AcademicRecords",
-      "address": "0x58e8bA3cFB03D0C803b645a0c4Fa2BbdB6a4142c",
-      "transactionHash": "0x190c18d825b66e4091c11c453b9461b502df735c9c487b2c123b41c8f4c4e1f2",
-      "blockNumber": 9040029,
+      "address": "0x16223a02e8796C060192eD27F761008Ce84e82a8",
+      "transactionHash": "0x9d8ddc5f29292963b9c96cc82e9fb79d410ad46e904afedca68785c7f8b5ada4",
+      "blockNumber": 9045928,
       "gasUsed": 4780042,
-      "deployedAt": "2025-08-22T13:47:50.771Z",
+      "deployedAt": "2025-08-23T09:38:38.712Z",
       "verified": true
     },
     "studentManagement": {
-      "address": "0x2a6D608beAe7180C6c09D8603aC554C52602105c",
-      "retrievedFrom": "0x58e8bA3cFB03D0C803b645a0c4Fa2BbdB6a4142c"
+      "address": "0xc11Ad9EccAEf9a098089117098634D5Fa8f40361",
+      "retrievedFrom": "0x16223a02e8796C060192eD27F761008Ce84e82a8"
     }
   },
   "environmentUpdates": {
-    "NEXT_PUBLIC_CONTRACT_ADDRESS": "0x58e8bA3cFB03D0C803b645a0c4Fa2BbdB6a4142c",
-    "NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS": "0x2a6D608beAe7180C6c09D8603aC554C52602105c",
-    "NEXT_PUBLIC_ZK_ACCESS_CONTROL_CONTRACT_ADDRESS": "0x3D1148d2066c12DD718A54F05d16beD7a837a920",
-    "NEXT_PUBLIC_ZK_VERIFIER_CONTRACT_ADDRESS": "0xa35BB07Fc18C1dDEB7Fb1292409Ce999727746cc",
+    "NEXT_PUBLIC_CONTRACT_ADDRESS": "0x16223a02e8796C060192eD27F761008Ce84e82a8",
+    "NEXT_PUBLIC_STUDENT_MANAGEMENT_CONTRACT_ADDRESS": "0xc11Ad9EccAEf9a098089117098634D5Fa8f40361",
+    "NEXT_PUBLIC_ZK_ACCESS_CONTROL_CONTRACT_ADDRESS": "0x54082ACE0dE80b8533e006be5400cBdA4bCD9D6A",
+    "NEXT_PUBLIC_ZK_VERIFIER_CONTRACT_ADDRESS": "0x003c0e18374ee08f1e747EAE8D4672d0570f22E3",
     "NEXT_PUBLIC_NETWORK_ID": "11155111",
     "NEXT_PUBLIC_RPC_URL": "https://sepolia.infura.io/v3/50478e0a39104f2280ccd1f61558a985",
     "DEPLOYMENT_NETWORK": "sepolia"

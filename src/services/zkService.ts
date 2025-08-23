@@ -327,6 +327,109 @@ export class ZKService {
     }
 
     /**
+     * Validate circuit inputs to ensure all 26 required values are provided
+     */
+    private validateCircuitInputs(input: any): void {
+        const requiredFields = [
+            'userAddress', 'recordId', 'accessKey', 'timestamp',
+            'pathElements', 'pathIndices', 'recordHash', 'merkleRoot'
+        ];
+
+        // Check all required fields are present
+        for (const field of requiredFields) {
+            if (input[field] === undefined || input[field] === null) {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `Missing required circuit input: ${field}`
+                );
+            }
+        }
+
+        // Validate array inputs
+        if (!Array.isArray(input.pathElements) || input.pathElements.length !== 10) {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                `pathElements must be an array of exactly 10 elements, got ${input.pathElements?.length || 0}`
+            );
+        }
+
+        if (!Array.isArray(input.pathIndices) || input.pathIndices.length !== 10) {
+            throw new ZKError(
+                ZKErrorType.PROOF_GENERATION_FAILED,
+                `pathIndices must be an array of exactly 10 elements, got ${input.pathIndices?.length || 0}`
+            );
+        }
+
+        // Validate all pathElements are valid field elements
+        for (let i = 0; i < input.pathElements.length; i++) {
+            const element = input.pathElements[i];
+            if (typeof element !== 'string' || element === '') {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `pathElements[${i}] must be a non-empty string, got ${typeof element}`
+                );
+            }
+
+            try {
+                const bigIntValue = BigInt(element);
+                const fieldSize = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+                if (bigIntValue >= fieldSize) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        `pathElements[${i}] value ${element} exceeds field size`
+                    );
+                }
+            } catch (error) {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `pathElements[${i}] is not a valid field element: ${element}`
+                );
+            }
+        }
+
+        // Validate all pathIndices are 0 or 1
+        for (let i = 0; i < input.pathIndices.length; i++) {
+            const index = input.pathIndices[i];
+            if (typeof index !== 'number' || (index !== 0 && index !== 1)) {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `pathIndices[${i}] must be 0 or 1, got ${index}`
+                );
+            }
+        }
+
+        // Validate string inputs are valid field elements
+        const stringFields = ['userAddress', 'recordId', 'accessKey', 'timestamp', 'recordHash', 'merkleRoot'];
+        for (const field of stringFields) {
+            const value = input[field];
+            if (typeof value !== 'string' || value === '') {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `${field} must be a non-empty string, got ${typeof value}`
+                );
+            }
+
+            try {
+                const bigIntValue = BigInt(value);
+                const fieldSize = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+                if (bigIntValue >= fieldSize) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        `${field} value ${value} exceeds field size`
+                    );
+                }
+            } catch (error) {
+                throw new ZKError(
+                    ZKErrorType.PROOF_GENERATION_FAILED,
+                    `${field} is not a valid field element: ${value}`
+                );
+            }
+        }
+
+        console.log('✓ All circuit inputs validated successfully');
+    }
+
+    /**
      * Get current user's Ethereum address
      */
     async getCurrentAddress(): Promise<string> {
@@ -410,14 +513,32 @@ export class ZKService {
      * Generate Merkle proof for access credentials
      * This is a simplified version - in production, you'd maintain a proper Merkle tree
      */
-    private generateMerkleProof(accessKey: string): { pathElements: string[]; pathIndices: number[] } {
-        // Simplified Merkle proof generation
+    private generateMerkleProof(accessKey: string, recordId: number, userAddress: string): { pathElements: string[]; pathIndices: number[] } {
+        // Generate a deterministic but simplified Merkle proof
         // In production, this would query the actual Merkle tree structure
-        const pathElements = new Array(10).fill('0');
-        const pathIndices = new Array(10).fill(0);
+        const pathElements = new Array(10);
+        const pathIndices = new Array(10);
 
-        // For now, we'll use the access key as the leaf and generate a simple path
-        // This should be replaced with actual Merkle tree logic
+        // Create deterministic path elements based on access key, record ID, and user address
+        const baseHash = ethers.keccak256(ethers.solidityPackedKeccak256(
+            ['string', 'uint256', 'address'],
+            [accessKey, recordId, userAddress]
+        ));
+
+        for (let i = 0; i < 10; i++) {
+            // Generate deterministic path elements
+            const elementHash = ethers.keccak256(ethers.solidityPackedKeccak256(
+                ['bytes32', 'uint256'],
+                [baseHash, i]
+            ));
+            const elementBigInt = BigInt(elementHash);
+            const fieldSize = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+            pathElements[i] = (elementBigInt % fieldSize).toString();
+
+            // Generate deterministic path indices (0 or 1)
+            pathIndices[i] = (elementBigInt % BigInt(2)) === BigInt(0) ? 0 : 1;
+        }
+
         return { pathElements, pathIndices };
     }
 
@@ -473,38 +594,80 @@ export class ZKService {
 
         return zkErrorHandler.executeWithRetry(
             async () => {
+                // Prepare all required circuit inputs
                 const recordHash = await this.getRecordHash(recordId);
                 const merkleRoot = await this.getMerkleRoot(recordId);
 
-                // For the simplified circuit: userAddress + recordId + accessKey should equal recordHash + merkleRoot
-                const userAddressField = BigInt(this.addressToField(userAddress));
-                const recordIdField = BigInt(recordId);
-                const accessKeyField = BigInt(this.stringToField(accessKey));
-                const recordHashField = BigInt(recordHash);
-                const merkleRootField = BigInt(merkleRoot);
+                // Convert inputs to field elements
+                const userAddressField = this.addressToField(userAddress);
+                const recordIdField = recordId.toString();
+                const accessKeyField = this.stringToField(accessKey);
 
-                // Calculate what accessKey should be to make the equation balance
-                const targetSum = recordHashField + merkleRootField;
-                const currentSum = userAddressField + recordIdField;
-                const requiredAccessKey = targetSum - currentSum;
+                // Generate current timestamp (in seconds)
+                const timestamp = Math.floor(Date.now() / 1000).toString();
 
-                // Separate private and public inputs according to circuit definition
-                const privateInputs = {
-                    userAddress: userAddressField.toString(),
-                    recordId: recordIdField.toString(),
-                    accessKey: requiredAccessKey.toString()
-                };
+                // Generate Merkle proof for the access credentials
+                const merkleProof = this.generateMerkleProof(accessKey, recordId, userAddress);
 
-                const publicInputs = {
-                    recordHash: recordHashField.toString(),
-                    merkleRoot: merkleRootField.toString()
-                };
+                // Validate that we have all required inputs
+                if (!userAddressField || !recordIdField || !accessKeyField || !timestamp) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        'Missing required private inputs for circuit'
+                    );
+                }
 
-                // Combine for snarkjs (it expects all inputs in one object)
+                if (!merkleProof.pathElements || merkleProof.pathElements.length !== 10) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        'Invalid pathElements array - must have exactly 10 elements'
+                    );
+                }
+
+                if (!merkleProof.pathIndices || merkleProof.pathIndices.length !== 10) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        'Invalid pathIndices array - must have exactly 10 elements'
+                    );
+                }
+
+                if (!recordHash || !merkleRoot) {
+                    throw new ZKError(
+                        ZKErrorType.PROOF_GENERATION_FAILED,
+                        'Missing required public inputs (recordHash or merkleRoot)'
+                    );
+                }
+
+                // Prepare complete circuit inputs (all 8 inputs + arrays = 26 total values)
                 const input = {
-                    ...privateInputs,
-                    ...publicInputs
+                    // Private inputs (6 + arrays)
+                    userAddress: userAddressField,
+                    recordId: recordIdField,
+                    accessKey: accessKeyField,
+                    timestamp: timestamp,
+                    pathElements: merkleProof.pathElements,  // Array of 10 elements
+                    pathIndices: merkleProof.pathIndices,    // Array of 10 elements
+
+                    // Public inputs (2)
+                    recordHash: recordHash,
+                    merkleRoot: merkleRoot
                 };
+
+                // Validate all inputs before proof generation
+                this.validateCircuitInputs(input);
+
+                // Log input validation for debugging
+                console.log('Circuit input validation:');
+                console.log('- userAddress:', userAddressField);
+                console.log('- recordId:', recordIdField);
+                console.log('- accessKey:', accessKeyField.substring(0, 20) + '...');
+                console.log('- timestamp:', timestamp);
+                console.log('- pathElements length:', merkleProof.pathElements.length);
+                console.log('- pathIndices length:', merkleProof.pathIndices.length);
+                console.log('- recordHash:', recordHash);
+                console.log('- merkleRoot:', merkleRoot);
+                console.log('Total input values:',
+                    6 + merkleProof.pathElements.length + merkleProof.pathIndices.length + 2);
 
                 // Add timeout to proof generation to prevent hanging
                 console.log('Generating ZK proof with input:', input);

@@ -109,14 +109,37 @@ export async function testZKProofGeneration(): Promise<{
             };
         }
 
-        // Test simple proof generation with mock data
-        const mockRecordId = 1;
-        const mockUserAddress = '0x1234567890123456789012345678901234567890';
+        // Check if any records exist first
+        const currentAddress = await zkService.getCurrentAddress();
+        const accessibleRecords = await zkService.getUserAccessibleRecords();
+
+        let testRecordId: number;
+
+        if (accessibleRecords.length === 0) {
+            console.log('No accessible records found. This test requires existing records in the contract.');
+            console.log('Please create some test records first or run this test with a user that has access to records.');
+
+            return {
+                success: false,
+                error: 'No accessible records found for testing. Please create test records first.',
+                details: {
+                    userAddress: currentAddress,
+                    accessibleRecordsCount: 0,
+                    suggestion: 'Create test records using the admin interface or deployment scripts'
+                }
+            };
+        } else {
+            // Use the first accessible record for testing
+            testRecordId = accessibleRecords[0];
+            console.log(`Using existing record ID ${testRecordId} for proof generation test`);
+        }
+
+        const mockUserAddress = currentAddress;
         const mockAccessKey = 'test-access-key';
 
         const proofResult = await zkService.generateAccessProof(
             mockUserAddress,
-            mockRecordId,
+            testRecordId,
             mockAccessKey
         );
 
@@ -127,7 +150,9 @@ export async function testZKProofGeneration(): Promise<{
             details: {
                 hasProof: !!proofResult.proof,
                 hasPublicSignals: !!proofResult.publicSignals,
-                publicSignalsCount: proofResult.publicSignals?.length || 0
+                publicSignalsCount: proofResult.publicSignals?.length || 0,
+                testedRecordId: testRecordId,
+                userAddress: mockUserAddress
             }
         };
     } catch (error) {

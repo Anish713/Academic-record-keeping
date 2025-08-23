@@ -53,13 +53,17 @@ export interface ZKAccessResult {
 }
 
 // ZK circuit inputs for proof generation
+// This interface matches the access-control.circom circuit inputs exactly
 export interface CircuitInputs {
+    // Private inputs
     userAddress: string;
     recordId: string;
     accessKey: string;
     timestamp: string;
-    pathElements: string[];
-    pathIndices: string[];
+    pathElements: string[]; // Array of exactly 10 elements for Merkle proof
+    pathIndices: number[];  // Array of exactly 10 elements for Merkle proof
+
+    // Public inputs
     recordHash: string;
     merkleRoot: string;
 }

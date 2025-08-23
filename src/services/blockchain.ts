@@ -267,8 +267,16 @@ class BlockchainService {
       const totalRecords = await this.getTotalRecords();
       const records: SecureRecord[] = [];
 
+      // Instead of assuming sequential IDs, try each ID and skip if it doesn't exist
       for (let recordId = 1; recordId <= totalRecords; recordId++) {
         try {
+          // First check if the record exists before trying to access it
+          const recordExists = await this.contract!.recordExists?.(recordId);
+          if (recordExists === false) {
+            console.log(`Skipping non-existent record ${recordId}`);
+            continue;
+          }
+
           const secureRecord = await this.getRecordWithZKAccess(recordId);
 
           // Admins should have oversight access to all records
@@ -279,6 +287,12 @@ class BlockchainService {
 
           records.push(secureRecord);
         } catch (error) {
+          // Check if this is a "record does not exist" error
+          if (error instanceof Error && error.message.includes('Record does not exist')) {
+            console.log(`Skipping non-existent record ${recordId}`);
+            continue;
+          }
+
           console.warn(`Failed to get ZK access for admin record ${recordId}:`, error);
 
           // Try to get basic record information as fallback
@@ -294,7 +308,11 @@ class BlockchainService {
               records.push(fallbackRecord);
             }
           } catch (fallbackError) {
-            console.error(`Failed to get fallback record ${recordId}:`, fallbackError);
+            if (fallbackError instanceof Error && fallbackError.message.includes('Record does not exist')) {
+              console.log(`Record ${recordId} confirmed to not exist, skipping`);
+            } else {
+              console.error(`Failed to get fallback record ${recordId}:`, fallbackError);
+            }
           }
         }
       }
