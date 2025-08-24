@@ -3,23 +3,60 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IAcademicRecords.sol";
+import "./interfaces/IZKPManager.sol";
+import "./interfaces/IAccessManager.sol";
+import "./interfaces/IKeyStorage.sol";
 import "./abstract/RoleManager.sol";
 import "./libraries/RecordStorage.sol";
+import "./libraries/SecureRecordOperations.sol";
+import "./libraries/RecordManagement.sol";
 import "./modules/StudentManagement.sol";
 
-contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
+/**
+ * @title AcademicRecords - Optimized for Mainnet Deployment
+ * @dev Streamlined contract with essential functionality only
+ */
+contract AcademicRecordsOptimized is IAcademicRecords, RoleManager, Pausable {
     using RecordStorage for RecordStorage.RecordData;
     using RecordStorage for RecordStorage.CustomTypeData;
+    using SecureRecordOperations for RecordStorage.RecordData;
+    using RecordManagement for RecordStorage.RecordData;
 
     RecordStorage.RecordData private recordData;
     RecordStorage.CustomTypeData private customTypeData;
     StudentManagement public studentManagement;
 
+    // ZKP Infrastructure contracts
+    IZKPManager public zkpManager;
+    IAccessManager public accessManager;
+    IKeyStorage public keyStorage;
+
+    event ZKPContractsUpdated(address zkpManager, address accessManager, address keyStorage);
+
     constructor() RoleManager() {
         studentManagement = new StudentManagement();
     }
 
-    // --- Academic Record Management ---
+    // --- Core Contract Management ---
+
+    function setZKPContracts(
+        address _zkpManager,
+        address _accessManager,
+        address _keyStorage
+    ) external onlyAdminOrSuper {
+        require(_zkpManager != address(0) && _accessManager != address(0) && _keyStorage != address(0), "Invalid addresses");
+
+        zkpManager = IZKPManager(_zkpManager);
+        accessManager = IAccessManager(_accessManager);
+        keyStorage = IKeyStorage(_keyStorage);
+
+        // Initialize RecordStorage library with the new contracts
+        recordData.initialize(_keyStorage, _accessManager);
+
+        emit ZKPContractsUpdated(_zkpManager, _accessManager, _keyStorage);
+    }
+
+    // --- Record Management ---
 
     function addRecord(
         string calldata studentId,
@@ -30,246 +67,112 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         string calldata metadataHash,
         RecordType recordType
     ) external onlyRole(UNIVERSITY_ROLE) whenNotPaused returns (uint256) {
-        require(studentAddress != address(0), "Invalid student address");
-
-        string memory existingStudentId = studentManagement.addressToStudentId(
-            studentAddress
+        return recordData.addRecord(
+            studentId, studentName, studentAddress, universityName,
+            ipfsHash, metadataHash, recordType, msg.sender, studentManagement
         );
-        if (bytes(existingStudentId).length == 0) {
-            studentManagement.registerStudent(studentId, studentAddress);
-        }
-
-        uint256 recordId = recordData.addRecord(
-            studentId,
-            studentName,
-            studentAddress,
-            universityName,
-            ipfsHash,
-            metadataHash,
-            recordType,
-            msg.sender
-        );
-
-        emit RecordAdded(recordId, studentId, recordType, msg.sender);
-        return recordId;
     }
 
-    function deleteStudent(
-        string calldata studentId
-    ) external onlyRole(UNIVERSITY_ROLE) whenNotPaused {
-        require(bytes(studentId).length > 0, "Invalid student ID");
-
-        uint256[] memory deletedRecords = recordData.deleteStudentRecords(
-            studentId,
-            msg.sender
+    function addSecureRecord(
+        string calldata studentId,
+        string calldata studentName,
+        address studentAddress,
+        string calldata universityName,
+        bytes calldata encryptedIPFSHash,
+        bytes calldata encryptedMetadataHash,
+        bytes calldata encryptedKey,
+        RecordType recordType
+    ) external onlyRole(UNIVERSITY_ROLE) whenNotPaused returns (uint256) {
+        return recordData.addSecureRecord(
+            studentId, studentName, studentAddress, universityName,
+            encryptedIPFSHash, encryptedMetadataHash, encryptedKey, recordType,
+            msg.sender, SUPER_ADMIN, studentManagement, zkpManager
         );
-
-        emit StudentDeleted(studentId, msg.sender);
-
-        // Emit events for deleted records
-        for (uint256 i = 0; i < deletedRecords.length; i++) {
-            // Records are already deleted, so we can't emit detailed info
-            // You might want to store this info before deletion if needed
-        }
     }
+
+    // --- Record Access (Consolidated) ---
 
     function getRecord(uint256 recordId) external view returns (Record memory) {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
+        require(recordData.records[recordId].id == recordId, "Record does not exist");
         return recordData.records[recordId];
     }
 
-    function getRecordWithPermission(
-        uint256 recordId
-    ) external view returns (Record memory) {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
-
-        Record memory record = recordData.records[recordId];
-
-        // Check if caller has permission to view this record
-        bool hasPermission = false;
-
-        // University that issued the record can always view
-        if (record.issuer == msg.sender) {
-            hasPermission = true;
-        }
-
-        // Check if record is shared with caller
-        if (recordData.recordSharedWith[recordId][msg.sender]) {
-            hasPermission = true;
-        }
-
-        // Admin and super admin can view all
-        if (hasRole(ADMIN_ROLE, msg.sender) || msg.sender == SUPER_ADMIN) {
-            hasPermission = true;
-        }
-
-        // Student can view their own records
-        string memory studentId = studentManagement.addressToStudentId(
-            msg.sender
-        );
-        if (
-            bytes(studentId).length > 0 &&
-            keccak256(bytes(studentId)) == keccak256(bytes(record.studentId))
-        ) {
-            hasPermission = true;
-        }
-
-        require(hasPermission, "No permission to view this record");
-
-        // If caller doesn't have full access, hide sensitive data
-        if (
-            !recordData.recordSharedWith[recordId][msg.sender] &&
-            record.issuer != msg.sender &&
-            !hasRole(ADMIN_ROLE, msg.sender) &&
-            msg.sender != SUPER_ADMIN
-        ) {
-            record.ipfsHash = "";
-            record.metadataHash = "";
-        }
-
-        return record;
+    function getSecureRecord(uint256 recordId) external view returns (SecureRecord memory) {
+        require(recordData.isRecordSecure(recordId), "Secure record does not exist");
+        
+        (uint256 id, string memory studentId, string memory studentName, address studentAddress, 
+         string memory universityName, RecordType recordType, uint256 timestamp, 
+         bool isVerified, address issuer,) = recordData.getRecordMetadata(recordId);
+        
+        return SecureRecord({
+            id: id,
+            studentId: studentId,
+            studentName: studentName,
+            studentAddress: studentAddress,
+            universityName: universityName,
+            encryptedIPFSHash: "",
+            encryptedMetadataHash: "",
+            zkProofHash: recordData.getZKProofHash(recordId),
+            recordType: recordType,
+            timestamp: timestamp,
+            isVerified: isVerified,
+            issuer: issuer,
+            accessControlHash: recordData.getAccessControlHash(recordId)
+        });
     }
 
-    function getStudentRecords(
-        string calldata studentId
-    ) external view returns (uint256[] memory) {
-        return recordData.studentRecords[studentId];
+    function getSecureRecordWithAccess(
+        uint256 recordId,
+        bytes32 proofHash
+    ) external returns (SecureRecord memory) {
+        return recordData.getSecureRecordWithAccess(
+            recordId, proofHash, msg.sender, zkpManager, accessManager, SUPER_ADMIN
+        );
     }
 
-    function getStudentRecordsByAddress(
-        address studentAddress
-    ) external view returns (uint256[] memory) {
-        string memory studentId = studentManagement.getStudentId(
-            studentAddress
+    function getDecryptedRecord(
+        uint256 recordId,
+        bytes32 proofHash
+    ) external returns (bytes memory encryptedIPFSHash, bytes memory encryptedMetadataHash) {
+        return recordData.getDecryptedRecord(
+            recordId, proofHash, msg.sender, zkpManager, accessManager, SUPER_ADMIN
         );
-
-        uint256[] memory addressRecords = recordData.getRecordsByStudentAddress(
-            studentAddress
-        );
-
-        if (bytes(studentId).length == 0) {
-            return addressRecords;
-        }
-
-        uint256[] memory idRecords = recordData.studentRecords[studentId];
-
-        // Combine array with unique records
-        uint256[] memory combinedRecords = new uint256[](
-            addressRecords.length + idRecords.length
-        );
-        uint256 uniqueCount = 0;
-
-        for (uint256 i = 0; i < addressRecords.length; i++) {
-            combinedRecords[uniqueCount] = addressRecords[i];
-            uniqueCount++;
-        }
-
-        for (uint256 i = 0; i < idRecords.length; i++) {
-            bool isDuplicate = false;
-
-            for (uint256 j = 0; j < uniqueCount; j++) {
-                if (idRecords[i] == combinedRecords[j]) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-
-            if (!isDuplicate) {
-                combinedRecords[uniqueCount] = idRecords[i];
-                uniqueCount++;
-            }
-        }
-
-        uint256[] memory result = new uint256[](uniqueCount);
-        for (uint256 i = 0; i < uniqueCount; i++) {
-            result[i] = combinedRecords[i];
-        }
-
-        return result;
     }
 
-    function getUniversityRecords()
-        external
-        view
-        onlyRole(UNIVERSITY_ROLE)
-        returns (uint256[] memory)
-    {
-        return recordData.universityRecords[msg.sender];
-    }
-
-    function verifyRecord(uint256 recordId) external view returns (bool) {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
-        return recordData.records[recordId].isVerified;
-    }
-
-    // --- Record Sharing Functions ---
+    // --- Record Sharing (Consolidated) ---
 
     function shareRecord(uint256 recordId, address sharedWith) external {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
+        require(recordData.records[recordId].id == recordId, "Record does not exist");
 
-        // Only student can share their records
-        string memory studentId = studentManagement.addressToStudentId(
-            msg.sender
-        );
-        require(bytes(studentId).length > 0, "Not a registered student");
-        require(
-            keccak256(bytes(studentId)) ==
-                keccak256(bytes(recordData.records[recordId].studentId)),
-            "Not your record"
-        );
+        string memory studentId = studentManagement.addressToStudentId(msg.sender);
+        require(bytes(studentId).length > 0 && 
+                keccak256(bytes(studentId)) == keccak256(bytes(recordData.records[recordId].studentId)), 
+                "Not authorized");
 
         recordData.shareRecord(recordId, sharedWith, studentId);
         emit RecordShared(recordId, studentId, sharedWith);
     }
 
-    function unshareRecord(uint256 recordId, address sharedWith) external {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
-
-        string memory studentId = studentManagement.addressToStudentId(
-            msg.sender
-        );
-        require(bytes(studentId).length > 0, "Not a registered student");
-        require(
-            keccak256(bytes(studentId)) ==
-                keccak256(bytes(recordData.records[recordId].studentId)),
-            "Not your record"
-        );
-
-        recordData.unshareRecord(recordId, sharedWith, studentId);
-        emit RecordUnshared(recordId, studentId, sharedWith);
-    }
-
-    function getSharedRecords(
-        address sharedWith
-    ) external view returns (uint256[] memory) {
-        string memory studentId = studentManagement.addressToStudentId(
-            msg.sender
-        );
-        require(bytes(studentId).length > 0, "Not a registered student");
-
-        return recordData.studentSharedRecords[studentId][sharedWith];
-    }
-
-    function isRecordSharedWith(
+    function shareSecureRecord(
         uint256 recordId,
-        address user
-    ) external view returns (bool) {
-        return recordData.recordSharedWith[recordId][user];
+        address sharedWith,
+        uint256 duration,
+        uint256 maxUsage
+    ) external returns (bytes32) {
+        return recordData.shareSecureRecord(recordId, sharedWith, duration, maxUsage, msg.sender);
+    }
+
+    function revokeSecureRecordAccess(uint256 recordId, address user) external {
+        recordData.revokeSecureRecordAccess(recordId, user, msg.sender, accessManager);
+    }
+
+    // --- Student Management ---
+
+    function deleteStudent(string calldata studentId) external onlyRole(UNIVERSITY_ROLE) whenNotPaused {
+        require(bytes(studentId).length > 0, "Invalid student ID");
+
+        recordData.deleteStudentRecords(studentId, msg.sender);
+        emit StudentDeleted(studentId, msg.sender);
     }
 
     // --- Custom Record Types ---
@@ -278,74 +181,9 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         string calldata name,
         string calldata description
     ) external onlyRole(UNIVERSITY_ROLE) returns (uint256) {
-        require(bytes(name).length > 0, "Invalid name");
-
-        uint256 typeId = customTypeData.addCustomType(
-            name,
-            description,
-            msg.sender
-        );
+        uint256 typeId = customTypeData.addCustomType(name, description, msg.sender);
         emit CustomRecordTypeCreated(typeId, name, msg.sender);
-
         return typeId;
-    }
-
-    function updateCustomRecordType(
-        uint256 typeId,
-        bool isActive
-    ) external onlyRole(UNIVERSITY_ROLE) {
-        require(
-            customTypeData.customTypes[typeId].creator == msg.sender,
-            "Not the creator"
-        );
-
-        customTypeData.customTypes[typeId].isActive = isActive;
-        emit CustomRecordTypeUpdated(typeId, isActive);
-    }
-
-    function getCustomRecordType(
-        uint256 typeId
-    ) external view returns (CustomRecordType memory) {
-        require(
-            customTypeData.customTypes[typeId].id == typeId,
-            "Custom type does not exist"
-        );
-        return customTypeData.customTypes[typeId];
-    }
-
-    function getUniversityCustomTypes()
-        external
-        view
-        onlyRole(UNIVERSITY_ROLE)
-        returns (uint256[] memory)
-    {
-        return customTypeData.universityCustomTypes[msg.sender];
-    }
-
-    // --- Access Tracking ---
-
-    function recordAccess(uint256 recordId) external {
-        require(
-            recordData.records[recordId].id == recordId,
-            "Record does not exist"
-        );
-        emit RecordAccessed(recordId, msg.sender);
-    }
-
-    // --- Student Registration ---
-
-    function registerStudent(string calldata studentId) external {
-        studentManagement.registerStudent(studentId, msg.sender);
-    }
-
-    // --- Pause Controls ---
-
-    function pause() external onlyAdminOrSuper {
-        _pause();
-    }
-
-    function unpause() external onlyAdminOrSuper {
-        _unpause();
     }
 
     // --- Utility Functions ---
@@ -354,7 +192,47 @@ contract AcademicRecords is IAcademicRecords, RoleManager, Pausable {
         return recordData.recordCounter;
     }
 
-    function getTotalCustomTypes() external view returns (uint256) {
-        return customTypeData.customTypeCounter;
+    function getTotalSecureRecords() external view returns (uint256) {
+        uint256 secureCount = 0;
+        for (uint256 i = 1; i <= recordData.recordCounter; i++) {
+            if (recordData.isRecordSecure(i)) {
+                secureCount++;
+            }
+        }
+        return secureCount;
+    }
+
+    function getStudentRecords(string calldata studentId) external view returns (uint256[] memory) {
+        return recordData.studentRecords[studentId];
+    }
+
+    function hasSecureRecordAccess(uint256 recordId, address accessor) external view returns (bool) {
+        return address(accessManager) != address(0) && accessManager.hasAccess(recordId, accessor);
+    }
+
+    // --- Emergency Functions ---
+
+    function emergencyAccess(
+        uint256 recordId,
+        string calldata reason
+    ) external onlyRole(SUPER_ADMIN_ROLE) returns (SecureRecord memory) {
+        return recordData.emergencyAccess(recordId, reason, msg.sender, accessManager);
+    }
+
+    function rotateRecordKey(uint256 recordId, bytes calldata newEncryptedKey) external {
+        recordData.rotateRecordKey(recordId, newEncryptedKey, msg.sender, SUPER_ADMIN, keyStorage);
+    }
+
+    // --- Internal Helper Functions ---
+    // Moved to libraries for size optimization
+
+    // --- Pause Functions ---
+
+    function pause() external onlyAdminOrSuper {
+        _pause();
+    }
+
+    function unpause() external onlyAdminOrSuper {
+        _unpause();
     }
 }
