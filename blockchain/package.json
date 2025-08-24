@@ -8,8 +8,9 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.ts"
+    "compile": "hardhat compile && ts-node scripts/copy-json.ts",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "copy-contracts": "ts-node scripts/copy-json.ts"
   },
   "keywords": [],
   "author": "",

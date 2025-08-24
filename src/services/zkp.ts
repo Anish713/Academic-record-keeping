@@ -7,6 +7,28 @@
 
 import * as snarkjs from 'snarkjs';
 
+// Error types for ZKP operations
+export enum ZKPErrorType {
+    PROOF_GENERATION_FAILED = "PROOF_GENERATION_FAILED",
+    PROOF_VERIFICATION_FAILED = "PROOF_VERIFICATION_FAILED",
+    CIRCUIT_LOADING_FAILED = "CIRCUIT_LOADING_FAILED",
+    CIRCUIT_NOT_FOUND = "CIRCUIT_NOT_FOUND",
+    INVALID_INPUT = "INVALID_INPUT",
+    INITIALIZATION_FAILED = "INITIALIZATION_FAILED",
+    NETWORK_ERROR = "NETWORK_ERROR"
+}
+
+export class ZKPError extends Error {
+    constructor(
+        public type: ZKPErrorType,
+        public details: string,
+        public recordId?: number
+    ) {
+        super(`ZKP Error [${type}]: ${details}`);
+        this.name = 'ZKPError';
+    }
+}
+
 export interface ZKProof {
     proof: {
         pi_a: string[];
@@ -48,12 +70,23 @@ export interface PublicSignals {
 export interface CircuitFiles {
     wasm: string;
     zkey: string;
+    vkey?: string;
+}
+
+export interface CircuitCache {
+    files: CircuitFiles;
+    wasmBuffer?: ArrayBuffer;
+    zkeyBuffer?: ArrayBuffer;
+    vkeyData?: any;
+    lastLoaded: number;
 }
 
 export class ZKPService {
     private static instance: ZKPService;
-    private circuitCache: Map<string, CircuitFiles> = new Map();
+    private circuitCache: Map<string, CircuitCache> = new Map();
     private isInitialized = false;
+    private initializationPromise: Promise<void> | null = null;
+    private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
     private constructor() { }
 
@@ -72,14 +105,30 @@ export class ZKPService {
             return;
         }
 
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
+
+        this.initializationPromise = this.performInitialization();
+        return this.initializationPromise;
+    }
+
+    private async performInitialization(): Promise<void> {
         try {
             // Load circuit files from public directory
             await this.loadCircuitFiles();
+
+            // Verify circuit integrity
+            await this.verifyCircuitIntegrity();
+
             this.isInitialized = true;
             console.log('✅ ZKP Service initialized successfully');
         } catch (error) {
             console.error('❌ Failed to initialize ZKP Service:', error);
-            throw new Error(`ZKP Service initialization failed: ${error}`);
+            throw new ZKPError(
+                ZKPErrorType.INITIALIZATION_FAILED,
+                `ZKP Service initialization failed: ${error instanceof Error ? error.message : String(error)}`
+            );
         }
     }
 
@@ -89,16 +138,103 @@ export class ZKPService {
     private async loadCircuitFiles(): Promise<void> {
         const circuits = ['access_verification', 'record_sharing'];
 
-        for (const circuit of circuits) {
+        const loadPromises = circuits.map(async (circuit) => {
             try {
-                // In a real implementation, these would be loaded from your public directory
-                // For now, we'll store the paths for later use
-                this.circuitCache.set(circuit, {
+                const files: CircuitFiles = {
                     wasm: `/circuits/${circuit}.wasm`,
-                    zkey: `/circuits/${circuit}.zkey`
+                    zkey: `/circuits/${circuit}.zkey`,
+                    vkey: `/circuits/${circuit}_verification_key.json`
+                };
+
+                // Pre-load and cache the files for better performance
+                const [wasmBuffer, zkeyBuffer, vkeyData] = await Promise.all([
+                    this.loadFile(files.wasm),
+                    this.loadFile(files.zkey),
+                    this.loadJsonFile(files.vkey!)
+                ]);
+
+                this.circuitCache.set(circuit, {
+                    files,
+                    wasmBuffer,
+                    zkeyBuffer,
+                    vkeyData,
+                    lastLoaded: Date.now()
                 });
+
+                console.log(`✅ Loaded circuit: ${circuit}`);
             } catch (error) {
                 console.warn(`⚠️ Failed to load circuit ${circuit}:`, error);
+                throw new ZKPError(
+                    ZKPErrorType.CIRCUIT_LOADING_FAILED,
+                    `Failed to load circuit ${circuit}: ${error instanceof Error ? error.message : String(error)}`
+                );
+            }
+        });
+
+        await Promise.all(loadPromises);
+    }
+
+    /**
+     * Load a file as ArrayBuffer
+     */
+    private async loadFile(url: string): Promise<ArrayBuffer> {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return await response.arrayBuffer();
+        } catch (error) {
+            throw new ZKPError(
+                ZKPErrorType.NETWORK_ERROR,
+                `Failed to load file ${url}: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+    }
+
+    /**
+     * Load a JSON file
+     */
+    private async loadJsonFile(url: string): Promise<any> {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            throw new ZKPError(
+                ZKPErrorType.NETWORK_ERROR,
+                `Failed to load JSON file ${url}: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+    }
+
+    /**
+     * Verify circuit integrity
+     */
+    private async verifyCircuitIntegrity(): Promise<void> {
+        for (const [circuitName, cache] of this.circuitCache) {
+            try {
+                // Basic integrity checks
+                if (!cache.wasmBuffer || cache.wasmBuffer.byteLength === 0) {
+                    throw new Error(`WASM file is empty or corrupted for ${circuitName}`);
+                }
+
+                if (!cache.zkeyBuffer || cache.zkeyBuffer.byteLength === 0) {
+                    throw new Error(`zkey file is empty or corrupted for ${circuitName}`);
+                }
+
+                if (!cache.vkeyData || !cache.vkeyData.protocol) {
+                    throw new Error(`Verification key is invalid for ${circuitName}`);
+                }
+
+                console.log(`✅ Circuit integrity verified: ${circuitName}`);
+            } catch (error) {
+                throw new ZKPError(
+                    ZKPErrorType.CIRCUIT_LOADING_FAILED,
+                    `Circuit integrity check failed for ${circuitName}: ${error instanceof Error ? error.message : String(error)}`
+                );
             }
         }
     }
@@ -112,24 +248,76 @@ export class ZKPService {
         await this.ensureInitialized();
 
         try {
-            const circuitFiles = this.circuitCache.get('access_verification');
-            if (!circuitFiles) {
-                throw new Error('Access verification circuit not loaded');
+            // Validate input
+            this.validateAccessInput(input);
+
+            const cache = this.circuitCache.get('access_verification');
+            if (!cache) {
+                throw new ZKPError(
+                    ZKPErrorType.CIRCUIT_NOT_FOUND,
+                    'Access verification circuit not loaded'
+                );
             }
 
             console.log('🔧 Generating access verification proof...');
 
             const { proof, publicSignals } = await snarkjs.groth16.fullProve(
                 input,
-                circuitFiles.wasm,
-                circuitFiles.zkey
+                cache.wasmBuffer!,
+                cache.zkeyBuffer!
             );
 
             console.log('✅ Access verification proof generated');
             return { proof, publicSignals };
         } catch (error) {
             console.error('❌ Failed to generate access proof:', error);
-            throw new Error(`Access proof generation failed: ${error}`);
+
+            if (error instanceof ZKPError) {
+                throw error;
+            }
+
+            throw new ZKPError(
+                ZKPErrorType.PROOF_GENERATION_FAILED,
+                `Access proof generation failed: ${error instanceof Error ? error.message : String(error)}`,
+                parseInt(input.recordId)
+            );
+        }
+    }
+
+    /**
+     * Validate access verification input
+     */
+    private validateAccessInput(input: AccessVerificationInput): void {
+        const requiredFields = ['recordId', 'userAddress', 'issuerAddress', 'studentAddress', 'accessType', 'timestamp', 'accessSecret'];
+
+        for (const field of requiredFields) {
+            if (!input[field as keyof AccessVerificationInput]) {
+                throw new ZKPError(
+                    ZKPErrorType.INVALID_INPUT,
+                    `Missing required field: ${field}`
+                );
+            }
+        }
+
+        // Validate Ethereum addresses
+        const addressFields = ['userAddress', 'issuerAddress', 'studentAddress'];
+        for (const field of addressFields) {
+            const address = input[field as keyof AccessVerificationInput] as string;
+            if (!this.isValidEthereumAddress(address)) {
+                throw new ZKPError(
+                    ZKPErrorType.INVALID_INPUT,
+                    `Invalid Ethereum address for field: ${field}`
+                );
+            }
+        }
+
+        // Validate access type
+        const accessType = parseInt(input.accessType);
+        if (accessType < 0 || accessType > 3) {
+            throw new ZKPError(
+                ZKPErrorType.INVALID_INPUT,
+                'Invalid access type. Must be 0 (OWNER), 1 (SHARED), 2 (ADMIN), or 3 (EMERGENCY)'
+            );
         }
     }
 
@@ -142,24 +330,78 @@ export class ZKPService {
         await this.ensureInitialized();
 
         try {
-            const circuitFiles = this.circuitCache.get('record_sharing');
-            if (!circuitFiles) {
-                throw new Error('Record sharing circuit not loaded');
+            // Validate input
+            this.validateSharingInput(input);
+
+            const cache = this.circuitCache.get('record_sharing');
+            if (!cache) {
+                throw new ZKPError(
+                    ZKPErrorType.CIRCUIT_NOT_FOUND,
+                    'Record sharing circuit not loaded'
+                );
             }
 
             console.log('🔧 Generating record sharing proof...');
 
             const { proof, publicSignals } = await snarkjs.groth16.fullProve(
                 input,
-                circuitFiles.wasm,
-                circuitFiles.zkey
+                cache.wasmBuffer!,
+                cache.zkeyBuffer!
             );
 
             console.log('✅ Record sharing proof generated');
             return { proof, publicSignals };
         } catch (error) {
             console.error('❌ Failed to generate sharing proof:', error);
-            throw new Error(`Sharing proof generation failed: ${error}`);
+
+            if (error instanceof ZKPError) {
+                throw error;
+            }
+
+            throw new ZKPError(
+                ZKPErrorType.PROOF_GENERATION_FAILED,
+                `Sharing proof generation failed: ${error instanceof Error ? error.message : String(error)}`,
+                parseInt(input.recordId)
+            );
+        }
+    }
+
+    /**
+     * Validate sharing input
+     */
+    private validateSharingInput(input: RecordSharingInput): void {
+        const requiredFields = ['recordId', 'ownerAddress', 'sharedWithAddress', 'expiryTime', 'currentTime', 'shareSecret', 'userAddress'];
+
+        for (const field of requiredFields) {
+            if (!input[field as keyof RecordSharingInput]) {
+                throw new ZKPError(
+                    ZKPErrorType.INVALID_INPUT,
+                    `Missing required field: ${field}`
+                );
+            }
+        }
+
+        // Validate Ethereum addresses
+        const addressFields = ['ownerAddress', 'sharedWithAddress', 'userAddress'];
+        for (const field of addressFields) {
+            const address = input[field as keyof RecordSharingInput] as string;
+            if (!this.isValidEthereumAddress(address)) {
+                throw new ZKPError(
+                    ZKPErrorType.INVALID_INPUT,
+                    `Invalid Ethereum address for field: ${field}`
+                );
+            }
+        }
+
+        // Validate timestamps
+        const currentTime = parseInt(input.currentTime);
+        const expiryTime = parseInt(input.expiryTime);
+
+        if (expiryTime <= currentTime) {
+            throw new ZKPError(
+                ZKPErrorType.INVALID_INPUT,
+                'Expiry time must be greater than current time'
+            );
         }
     }
 
@@ -173,24 +415,43 @@ export class ZKPService {
         await this.ensureInitialized();
 
         try {
-            // Load verification key (in real implementation, this would be loaded from public directory)
-            const vkeyPath = `/circuits/${circuitName}_verification_key.json`;
+            // Validate proof structure
+            if (!this.isValidProofStructure(proof)) {
+                throw new ZKPError(
+                    ZKPErrorType.INVALID_INPUT,
+                    'Invalid proof structure'
+                );
+            }
 
-            // For now, we'll simulate verification
-            // In a real implementation, you would load the verification key and verify
+            const cache = this.circuitCache.get(circuitName);
+            if (!cache || !cache.vkeyData) {
+                throw new ZKPError(
+                    ZKPErrorType.CIRCUIT_NOT_FOUND,
+                    `Verification key not found for circuit: ${circuitName}`
+                );
+            }
+
             console.log('🔍 Verifying proof...');
 
-            // const vKey = await fetch(vkeyPath).then(r => r.json());
-            // const isValid = await snarkjs.groth16.verify(vKey, proof.publicSignals, proof.proof);
-
-            // For demonstration, we'll return true if proof structure is valid
-            const isValid = this.isValidProofStructure(proof);
+            const isValid = await snarkjs.groth16.verify(
+                cache.vkeyData,
+                proof.publicSignals,
+                proof.proof
+            );
 
             console.log(`✅ Proof verification result: ${isValid}`);
             return isValid;
         } catch (error) {
             console.error('❌ Failed to verify proof:', error);
-            return false;
+
+            if (error instanceof ZKPError) {
+                throw error;
+            }
+
+            throw new ZKPError(
+                ZKPErrorType.PROOF_VERIFICATION_FAILED,
+                `Proof verification failed: ${error instanceof Error ? error.message : String(error)}`
+            );
         }
     }
 
@@ -261,6 +522,34 @@ export class ZKPService {
         return status;
     }
 
+    /**
+     * Clear circuit cache (useful for testing or memory management)
+     */
+    public clearCache(): void {
+        this.circuitCache.clear();
+        this.isInitialized = false;
+        this.initializationPromise = null;
+        console.log('🧹 Circuit cache cleared');
+    }
+
+    /**
+     * Get cache statistics
+     */
+    public getCacheStats(): { [key: string]: any } {
+        const stats: { [key: string]: any } = {};
+
+        for (const [circuitName, cache] of this.circuitCache) {
+            stats[circuitName] = {
+                lastLoaded: new Date(cache.lastLoaded).toISOString(),
+                wasmSize: cache.wasmBuffer?.byteLength || 0,
+                zkeySize: cache.zkeyBuffer?.byteLength || 0,
+                hasVkey: !!cache.vkeyData
+            };
+        }
+
+        return stats;
+    }
+
     // Private helper methods
 
     private async ensureInitialized(): Promise<void> {
@@ -273,11 +562,18 @@ export class ZKPService {
         return !!(
             proof.proof &&
             proof.proof.pi_a &&
+            Array.isArray(proof.proof.pi_a) &&
             proof.proof.pi_b &&
+            Array.isArray(proof.proof.pi_b) &&
             proof.proof.pi_c &&
+            Array.isArray(proof.proof.pi_c) &&
             proof.publicSignals &&
             Array.isArray(proof.publicSignals)
         );
+    }
+
+    private isValidEthereumAddress(address: string): boolean {
+        return /^0x[a-fA-F0-9]{40}$/.test(address);
     }
 
     private generateShareSecret(): string {
