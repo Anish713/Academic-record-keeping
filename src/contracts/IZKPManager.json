@@ -1,0 +1,346 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IZKPManager",
+  "sourceName": "contracts/interfaces/IZKPInterfaces.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum IZKPManager.AccessType",
+          "name": "accessType",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "AccessVerified",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "verifier",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isValid",
+          "type": "bool"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProofVerified",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sharedBy",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sharedWith",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "RecordShared",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "recordIds",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "enum IZKPManager.AccessType[]",
+          "name": "accessTypes",
+          "type": "uint8[]"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof[]",
+          "name": "proofs",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint256[][]",
+          "name": "publicSignalsArray",
+          "type": "uint256[][]"
+        }
+      ],
+      "name": "batchVerifyAccess",
+      "outputs": [
+        {
+          "internalType": "bool[]",
+          "name": "results",
+          "type": "bool[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "circuitType",
+          "type": "uint8"
+        }
+      ],
+      "name": "getVerificationKey",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "verificationKey",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "hasVerifiedAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "hasAccess",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "sharedWith",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof",
+          "name": "proof",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "publicSignals",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "shareRecordWithZKP",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "enum IZKPManager.AccessType",
+          "name": "accessType",
+          "type": "uint8"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof",
+          "name": "proof",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "publicSignals",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "verifyAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof",
+          "name": "proof",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "publicSignals",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint8",
+          "name": "circuitType",
+          "type": "uint8"
+        }
+      ],
+      "name": "verifyProof",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isValid",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

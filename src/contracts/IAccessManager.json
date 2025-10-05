@@ -1,0 +1,329 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAccessManager",
+  "sourceName": "contracts/interfaces/IZKPInterfaces.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "grantedTo",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "grantedBy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "AccessGranted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "revokedFrom",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "revokedBy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "AccessRevoked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "encryptedHashHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "RecordEncrypted",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getEncryptedKey",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "encryptedKey",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getEncryptedRecord",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "encryptedHashHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "encryptedKey",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct IAccessManager.EncryptedRecord",
+          "name": "encryptedRecord",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "grantTo",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "encryptedKeyForGrantee",
+          "type": "bytes"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof",
+          "name": "proof",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "publicSignals",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "grantAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "hasAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "hasAccess",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "revokeFrom",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256[2]",
+              "name": "a",
+              "type": "uint256[2]"
+            },
+            {
+              "internalType": "uint256[2][2]",
+              "name": "b",
+              "type": "uint256[2][2]"
+            },
+            {
+              "internalType": "uint256[2]",
+              "name": "c",
+              "type": "uint256[2]"
+            }
+          ],
+          "internalType": "struct IZKPManager.Proof",
+          "name": "proof",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "publicSignals",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "revokeAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "recordId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "encryptedHashHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "encryptedKey",
+          "type": "bytes"
+        }
+      ],
+      "name": "storeEncryptedRecord",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
